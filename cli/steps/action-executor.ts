@@ -55,21 +55,35 @@ export class ActionExecutorStep extends PipelineStep {
     const lineComments = action.comments.filter(c => c.line_number != null);
     const generalComments = action.comments.filter(c => c.line_number == null);
 
-    // Post inline review comments with no approve/request_changes verdict
-    await octokit.pulls.createReview({
-      owner: action.repo_owner,
-      repo: action.repo_name,
-      pull_number: action.pr_number,
-      body: action.summary,
-      event: 'COMMENT',
-      comments: lineComments.map(c => ({
-        path: c.file_path,
-        line: c.line_number!,
-        body: `**[${c.severity.toUpperCase()}] ${c.category}**\n\n${c.comment}`,
-      })),
-    });
-
-    logger.info(`Posted review with ${lineComments.length} inline comment(s)`);
+    // Post inline review comments with no approve/request_changes verdict.
+    // Falls back to a general issue comment if GitHub rejects the paths/lines.
+    try {
+      await octokit.pulls.createReview({
+        owner: action.repo_owner,
+        repo: action.repo_name,
+        pull_number: action.pr_number,
+        body: action.summary,
+        event: 'COMMENT',
+        comments: lineComments.map(c => ({
+          path: c.file_path,
+          line: c.line_number!,
+          body: `**[${c.severity.toUpperCase()}] ${c.category}**\n\n${c.comment}`,
+        })),
+      });
+      logger.info(`Posted review with ${lineComments.length} inline comment(s)`);
+    } catch (err) {
+      logger.warn(`Inline review failed (path/line not in diff), falling back to general comment: ${err}`);
+      const fallbackBody = lineComments
+        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path}:${c.line_number}\`\n\n${c.comment}`)
+        .join('\n\n---\n\n');
+      await octokit.issues.createComment({
+        owner: action.repo_owner,
+        repo: action.repo_name,
+        issue_number: action.pr_number,
+        body: `${action.summary}\n\n---\n\n${fallbackBody}`,
+      });
+      logger.info(`Posted fallback general comment with ${lineComments.length} inline comment(s)`);
+    }
 
     // Post general (non-line-specific) issues as a single PR comment
     if (generalComments.length > 0) {
