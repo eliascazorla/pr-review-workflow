@@ -6,7 +6,6 @@ import {
   CodeAnalysisResult,
   PRMetadata,
 } from '../models';
-import { QUALITY_METRICS_SCHEMA } from '../schemas';
 import logger from '../logger';
 
 /**

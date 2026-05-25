@@ -1,7 +1,6 @@
 import { PipelineStep, WorkflowContext } from '../workflow';
 import { LLMClient } from '../llm-client';
 import { CodeAnalysisResultSchema, CodeAnalysisResult, PRMetadata } from '../models';
-import { CODE_ANALYSIS_SCHEMA } from '../schemas';
 import logger from '../logger';
 
 /**

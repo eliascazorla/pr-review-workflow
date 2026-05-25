@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { z, ZodSchema } from 'zod';
+import { z, ZodTypeAny } from 'zod';
 import logger from './logger';
 import { config } from './config';
+import zodToJsonSchema from 'zod-to-json-schema';
 
 /**
  * LLM Client for making structured output calls with JSON validation
@@ -22,17 +23,17 @@ export class LLMClient {
   /**
    * Call LLM with structured output requirements
    */
-  async callWithSchema<T>(
-    schema: ZodSchema<T>,
+  async callWithSchema<T extends ZodTypeAny>(
+    schema: T,
     systemPrompt: string,
     userMessage: string,
     temperature: number = 0.7,
     maxTokens: number = 4096
-  ): Promise<T> {
+  ): Promise<z.output<T>> {
     const fullSystemPrompt = `${systemPrompt}
 
 You MUST respond with valid JSON that conforms to this schema:
-${JSON.stringify(schema.describe(), null, 2)}
+${JSON.stringify(zodToJsonSchema(schema as any), null, 2)}
 
 Ensure the JSON is valid and complete.`;
 
@@ -70,7 +71,7 @@ Ensure the JSON is valid and complete.`;
         const jsonContent = this.extractJSON(content);
 
         // Parse with Zod schema
-        const parsed = schema.parse(jsonContent);
+        const parsed = schema.parse(jsonContent) as z.output<T>;
         logger.info('Successfully parsed LLM response');
         return parsed;
       } catch (error) {

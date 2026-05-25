@@ -7,7 +7,6 @@ import {
   QualityMetricsResult,
   PRMetadata,
 } from '../models';
-import { REVIEW_COMMENTS_SCHEMA } from '../schemas';
 import logger from '../logger';
 
 /**

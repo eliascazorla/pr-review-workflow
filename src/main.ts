@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import { config } from './config';
 import logger from './logger';
 import { LLMClient } from './llm-client';
@@ -22,7 +22,7 @@ app.use(express.json());
 /**
  * Request logging middleware
  */
-app.use((req: Request, res: Response, next) => {
+app.use((req: Request, _res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
@@ -39,7 +39,7 @@ async function initialize(): Promise<void> {
 /**
  * Health check endpoint
  */
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     service: 'pr-review-workflow',
@@ -50,7 +50,7 @@ app.get('/health', (req: Request, res: Response) => {
 /**
  * Root endpoint
  */
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     service: 'PR Review Workflow',
     version: '0.1.0',
@@ -114,12 +114,13 @@ app.post('/review-pr', async (req: Request, res: Response) => {
     const result = await workflow.execute(prMetadata);
 
     if (result.status === 'failed') {
-      return res.status(500).json({
+      res.status(500).json({
         status: 'failed',
         review_id: result.review_id,
         message: `Workflow failed: ${result.error}`,
         error: result.error,
       });
+      return;
     }
 
     // Get results from context
@@ -165,7 +166,7 @@ app.use((req: Request, res: Response) => {
 /**
  * Error handler
  */
-app.use((err: Error, req: Request, res: Response, next: any) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error(`Unhandled error: ${err}`);
   res.status(500).json({
     status: 'failed',

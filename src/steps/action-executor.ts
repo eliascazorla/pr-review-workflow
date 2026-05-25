@@ -2,6 +2,7 @@ import { PipelineStep, WorkflowContext } from '../workflow';
 import { ReviewCommentsResult, ReviewAction, PRMetadata } from '../models';
 import { config } from '../config';
 import logger from '../logger';
+import { Octokit } from '@octokit/rest';
 
 /**
  * Action Executor step - executes actions on GitHub
@@ -49,15 +50,15 @@ export class ActionExecutorStep extends PipelineStep {
   private async postReviewToGitHub(action: ReviewAction): Promise<void> {
     // NOTE: This is a placeholder implementation
     // In production, you would use @octokit/rest:
-    // const octokit = new Octokit({ auth: this.githubToken });
-    // await octokit.pulls.createReview({
-    //   owner: action.repo_owner,
-    //   repo: action.repo_name,
-    //   pull_number: action.pr_number,
-    //   body: action.summary,
-    //   event: action.verdict.toUpperCase(),
-    //   comments: action.comments.map(c => ({ path: c.file_path, line: c.line_number, body: c.comment }))
-    // });
+    const octokit = new Octokit({ auth: this.githubToken });
+    await octokit.pulls.createReview({
+      owner: action.repo_owner,
+      repo: action.repo_name,
+      pull_number: action.pr_number,
+      body: action.summary,
+      event: action.verdict.toUpperCase() as 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+      comments: action.comments.map(c => ({ path: c.file_path, line: c.line_number, body: c.comment }))
+    });
 
     logger.info(
       `[PLACEHOLDER] Would post review to ${action.repo_owner}/${action.repo_name}#${action.pr_number}`
