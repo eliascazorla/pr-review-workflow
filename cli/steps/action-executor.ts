@@ -45,26 +45,46 @@ export class ActionExecutorStep extends PipelineStep {
   }
 
   /**
-   * Post review to GitHub (placeholder implementation)
+   * Post review to GitHub.
+   * - Comments with a line number are posted as inline review comments (event: COMMENT).
+   * - Comments without a line number are grouped into a single general PR comment.
    */
   private async postReviewToGitHub(action: ReviewAction): Promise<void> {
-    // NOTE: This is a placeholder implementation
-    // In production, you would use @octokit/rest:
     const octokit = new Octokit({ auth: this.githubToken });
+
+    const lineComments = action.comments.filter(c => c.line_number != null);
+    const generalComments = action.comments.filter(c => c.line_number == null);
+
+    // Post inline review comments with no approve/request_changes verdict
     await octokit.pulls.createReview({
       owner: action.repo_owner,
       repo: action.repo_name,
       pull_number: action.pr_number,
       body: action.summary,
-      event: action.verdict.toUpperCase() as 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
-      comments: action.comments.map(c => ({ path: c.file_path, line: c.line_number, body: c.comment }))
+      event: 'COMMENT',
+      comments: lineComments.map(c => ({
+        path: c.file_path,
+        line: c.line_number!,
+        body: `**[${c.severity.toUpperCase()}] ${c.category}**\n\n${c.comment}`,
+      })),
     });
 
-    logger.info(
-      `[PLACEHOLDER] Would post review to ${action.repo_owner}/${action.repo_name}#${action.pr_number}`
-    );
-    logger.info(`[PLACEHOLDER] Verdict: ${action.verdict}`);
-    logger.info(`[PLACEHOLDER] Comments: ${action.comments.length}`);
-    logger.info(`[PLACEHOLDER] Summary: ${action.summary.substring(0, 100)}...`);
+    logger.info(`Posted review with ${lineComments.length} inline comment(s)`);
+
+    // Post general (non-line-specific) issues as a single PR comment
+    if (generalComments.length > 0) {
+      const body = generalComments
+        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path}\`\n\n${c.comment}`)
+        .join('\n\n---\n\n');
+
+      await octokit.issues.createComment({
+        owner: action.repo_owner,
+        repo: action.repo_name,
+        issue_number: action.pr_number,
+        body,
+      });
+
+      logger.info(`Posted general comment with ${generalComments.length} issue(s)`);
+    }
   }
 }
