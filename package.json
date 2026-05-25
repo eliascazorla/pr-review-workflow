@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@azure/openai": "^1.0.0-alpha.1",
+    "openai": "^4.98.0",
     "@octokit/rest": "^20.0.2",
     "@opentelemetry/api": "^1.7.0",
     "axios": "^1.6.2",

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import OpenAI from 'openai';
 import { z, ZodTypeAny } from 'zod';
 import logger from './logger';
 import { config } from './config';
@@ -8,14 +8,16 @@ import zodToJsonSchema from 'zod-to-json-schema';
  * LLM Client for making structured output calls with JSON validation
  */
 export class LLMClient {
-  private apiEndpoint: string;
-  private apiKey: string;
+  private client: OpenAI;
   private modelDeploymentName: string;
   private maxRetries: number;
 
   constructor() {
-    this.apiEndpoint = config.azureApiEndpoint;
-    this.apiKey = config.azureApiKey;
+    this.client = new OpenAI({
+      baseURL: config.azureApiEndpoint,
+      apiKey: config.azureApiKey,
+      defaultHeaders: { 'api-key': config.azureApiKey },
+    });
     this.modelDeploymentName = config.modelDeploymentName;
     this.maxRetries = config.maxRetries;
   }
@@ -41,33 +43,19 @@ Ensure the JSON is valid and complete.`;
       try {
         logger.info(`LLM call attempt ${attempt}/${this.maxRetries}`);
 
-        // Call Azure OpenAI API
-        const response = await axios.post(
-          `${this.apiEndpoint}/chat/completions`,
-          {
-            messages: [
-              {
-                role: 'system',
-                content: fullSystemPrompt,
-              },
-              {
-                role: 'user',
-                content: userMessage,
-              },
-            ],
-            temperature,
-            max_tokens: maxTokens,
-            response_format: { type: 'json_object' },
-          },
-          {
-            headers: {
-              'api-key': this.apiKey,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // Call Azure OpenAI API via SDK
+        const response = await this.client.chat.completions.create({
+          model: this.modelDeploymentName,
+          messages: [
+            { role: 'system', content: fullSystemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          temperature,
+          max_tokens: maxTokens,
+          response_format: { type: 'json_object' },
+        });
 
-        const content = response.data.choices[0].message.content.trim();
+        const content = response.choices[0].message.content?.trim() ?? '';
         const jsonContent = this.extractJSON(content);
 
         // Parse with Zod schema
@@ -77,8 +65,8 @@ Ensure the JSON is valid and complete.`;
       } catch (error) {
         if (error instanceof z.ZodError) {
           logger.warn(`Validation error on attempt ${attempt}: ${error.message}`);
-        } else if (axios.isAxiosError(error)) {
-          logger.warn(`API error on attempt ${attempt}: ${error.message}`);
+        } else if (error instanceof OpenAI.APIError) {
+          logger.warn(`API error on attempt ${attempt}: ${error.status} ${error.message} — ${JSON.stringify(error.error)}`);
         } else {
           logger.warn(`Error on attempt ${attempt}: ${error}`);
         }
