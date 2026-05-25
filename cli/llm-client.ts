@@ -43,7 +43,7 @@ Ensure the JSON is valid and complete.`;
 
         // Call Azure OpenAI API
         const response = await axios.post(
-          `${this.apiEndpoint}/openai/deployments/${this.modelDeploymentName}/chat/completions?api-version=${config.apiVersion}`,
+          `${this.apiEndpoint}/chat/completions`,
           {
             messages: [
               {
