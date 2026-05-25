@@ -17,9 +17,9 @@ export class CodeAnalyzerStep extends PipelineStep {
     logger.info(`Analyzing code for PR #${prMetadata.pr_number}`);
 
     // Prepare diff summary (limit size for LLM)
-    const diffSummary = prMetadata.diff.substring(0, 3000);
+    const diffSummary = prMetadata.diff.substring(0, 60000);
     const limitedDiff =
-      prMetadata.diff.length > 3000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
+      prMetadata.diff.length > 60000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
 
     const systemPrompt = `You are a code review expert. Analyze the provided GitHub PR diff and return a comprehensive code analysis in JSON format.
 

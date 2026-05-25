@@ -56,9 +56,9 @@ Quality Metrics:
 `;
     }
 
-    const diffSummary = prMetadata.diff.substring(0, 3000);
+    const diffSummary = prMetadata.diff.substring(0, 60000);
     const limitedDiff =
-      prMetadata.diff.length > 3000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
+      prMetadata.diff.length > 60000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
 
     const userMessage = `Generate a comprehensive review for this PR:
 
