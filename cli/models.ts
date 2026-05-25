@@ -51,7 +51,7 @@ export type QualityMetricsResult = z.infer<typeof QualityMetricsResultSchema>;
  */
 export const ReviewCommentSchema = z.object({
   file_path: z.string(),
-  line_number: z.number().optional(),
+  line_number: z.number().nullish().transform(v => v ?? undefined),
   severity: SeveritySchema,
   comment: z.string(),
   category: z.string(),
