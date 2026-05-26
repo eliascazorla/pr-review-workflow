@@ -51,7 +51,7 @@ Ensure the JSON is valid and complete.`;
             { role: 'user', content: userMessage },
           ],
           temperature,
-          max_tokens: maxTokens,
+          max_completion_tokens: maxTokens,
           response_format: { type: 'json_object' },
         });
 
