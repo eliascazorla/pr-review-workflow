@@ -1,0 +1,16 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -1,6 +1,10 @@
+-def process(data):
+-    tmp = data
+-    return tmp
++def process(customer_records):
++    data1 = customer_records
++    # TODO: remove duplicated normalization path
++    normalized = []
++    for item in data1:
++        for inner in item.get("children", []):
++            normalized.append(inner)
++    return normalized
+
