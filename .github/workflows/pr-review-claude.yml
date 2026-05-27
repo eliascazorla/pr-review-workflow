@@ -1,0 +1,28 @@
+name: PR Review (Claude + Foundry)
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_foundry: "true"
+          claude_args: "--model claude-haiku-4-5 --max-turns 10"
+          plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
+          plugins: "pr-review-toolkit@claude-plugins-official"
+          prompt: "Review my code before I merge this PR"
+        env:
+          ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+          ANTHROPIC_FOUNDRY_BASE_URL: ${{ secrets.ANTHROPIC_FOUNDRY_BASE_URL }}
