@@ -1,30 +1,30 @@
-# name: PR Review
+name: PR Review
 
-# on:
-#   pull_request:
-#     types: [opened, synchronize, reopened]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
-# jobs:
-#   review:
-#     runs-on: ubuntu-latest
-#     permissions:
-#       pull-requests: write  # needed to post review comments
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # needed to post review comments
 
-#     steps:
-#       - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-#       - uses: actions/setup-node@v4
-#         with:
-#           node-version: '20'
-#           cache: 'npm'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-#       - name: Install dependencies
-#         run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Run PR review
-#         run: npm run review-pr
-#         env:
-#           AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
-#           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
-#           MODEL_DEPLOYMENT_NAME: ${{ secrets.MODEL_DEPLOYMENT_NAME }}
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run PR review
+        run: npm run review-pr
+        env:
+          AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
+          AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
+          MODEL_DEPLOYMENT_NAME: ${{ secrets.MODEL_DEPLOYMENT_NAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
