@@ -1,70 +1,70 @@
-# name: PR Review Agents
+name: PR Review Agents
 
-# on:
-#   pull_request:
-#     types: [ready_for_review, synchronize, reopened, labeled]
+on:
+  pull_request:
+    types: [ready_for_review, synchronize, reopened, labeled]
 
-# permissions:
-#   contents: read
-#   pull-requests: write
-#   issues: write
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
-# jobs:
-#   policy:
-#     runs-on: ubuntu-latest
-#     outputs:
-#       mode: ${{ steps.policy.outputs.mode }}
-#       compare: ${{ steps.policy.outputs.compare }}
-#       parallel: ${{ steps.policy.outputs.parallel }}
-#       base_sha: ${{ steps.policy.outputs.base_sha }}
-#       head_sha: ${{ steps.policy.outputs.head_sha }}
-#       pull_number: ${{ steps.policy.outputs.pull_number }}
-#     steps:
-#       - name: Decide review policy
-#         id: policy
-#         uses: actions/github-script@v7
-#         with:
-#           script: |
-#             const isFork = context.payload.pull_request.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo;
-#             const mode = isFork ? 'heuristic' : 'auto';
-#             const { owner, repo } = context.repo;
-#             const pull_number = context.payload.pull_request.number;
-#             const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
-#               owner,
-#               repo,
-#               issue_number: pull_number,
-#               per_page: 100,
-#             });
-#             const labelNames = labels.map((label) => label.name).sort();
-#             const hasComparisonLabel = labelNames.includes('run-comparison');
-#             const hasParallelLabel = labelNames.includes('parallel-agents');
-#             core.setOutput('mode', mode);
-#             core.setOutput('compare', String(hasComparisonLabel));
-#             core.setOutput('parallel', String(hasParallelLabel));
-#             core.setOutput('base_sha', context.payload.pull_request.base.sha);
-#             core.setOutput('head_sha', context.payload.pull_request.head.sha);
-#             core.setOutput('pull_number', String(pull_number));
-#             core.summary.addRaw(
-#               [
-#                 `- PR from fork: ${isFork ? 'yes' : 'no'}`,
-#                 `- Analysis mode: ${mode}`,
-#                 `- Comparison enabled: ${hasComparisonLabel ? 'yes' : 'no'}`,
-#                 `- Parallel agents: ${hasParallelLabel ? 'yes' : 'no'}`,
-#                 '',
-#               ].join('\n')
-#             ).write();
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.policy.outputs.mode }}
+      compare: ${{ steps.policy.outputs.compare }}
+      parallel: ${{ steps.policy.outputs.parallel }}
+      base_sha: ${{ steps.policy.outputs.base_sha }}
+      head_sha: ${{ steps.policy.outputs.head_sha }}
+      pull_number: ${{ steps.policy.outputs.pull_number }}
+    steps:
+      - name: Decide review policy
+        id: policy
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isFork = context.payload.pull_request.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo;
+            const mode = isFork ? 'heuristic' : 'auto';
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+            const labelNames = labels.map((label) => label.name).sort();
+            const hasComparisonLabel = labelNames.includes('run-comparison');
+            const hasParallelLabel = labelNames.includes('parallel-agents');
+            core.setOutput('mode', mode);
+            core.setOutput('compare', String(hasComparisonLabel));
+            core.setOutput('parallel', String(hasParallelLabel));
+            core.setOutput('base_sha', context.payload.pull_request.base.sha);
+            core.setOutput('head_sha', context.payload.pull_request.head.sha);
+            core.setOutput('pull_number', String(pull_number));
+            core.summary.addRaw(
+              [
+                `- PR from fork: ${isFork ? 'yes' : 'no'}`,
+                `- Analysis mode: ${mode}`,
+                `- Comparison enabled: ${hasComparisonLabel ? 'yes' : 'no'}`,
+                `- Parallel agents: ${hasParallelLabel ? 'yes' : 'no'}`,
+                '',
+              ].join('\n')
+            ).write();
 
-#   review:
-#     needs: policy
-#     uses: ./.github/workflows/pr-review-core.yml
-#     with:
-#       base_sha: ${{ needs.policy.outputs.base_sha }}
-#       head_sha: ${{ needs.policy.outputs.head_sha }}
-#       pull_number: ${{ needs.policy.outputs.pull_number }}
-#       review_mode: ${{ needs.policy.outputs.mode }}
-#       run_comparison: ${{ needs.policy.outputs.compare == 'true' }}
-#       parallel_agents: ${{ needs.policy.outputs.parallel == 'true' }}
-#     secrets:
-#       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-#       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-#       MULTIAGENT_MODEL: ${{ secrets.MULTIAGENT_MODEL }}
+  review:
+    needs: policy
+    uses: ./.github/workflows/pr-review-core.yml
+    with:
+      base_sha: ${{ needs.policy.outputs.base_sha }}
+      head_sha: ${{ needs.policy.outputs.head_sha }}
+      pull_number: ${{ needs.policy.outputs.pull_number }}
+      review_mode: ${{ needs.policy.outputs.mode }}
+      run_comparison: ${{ needs.policy.outputs.compare == 'true' }}
+      parallel_agents: ${{ needs.policy.outputs.parallel == 'true' }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      MULTIAGENT_MODEL: ${{ secrets.MULTIAGENT_MODEL }}
