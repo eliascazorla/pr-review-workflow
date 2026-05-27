@@ -1,30 +1,70 @@
-name: PR Review
+name: PR Review Agents
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ready_for_review, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
-  review:
+  policy:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write  # needed to post review comments
-
+    outputs:
+      mode: ${{ steps.policy.outputs.mode }}
+      compare: ${{ steps.policy.outputs.compare }}
+      parallel: ${{ steps.policy.outputs.parallel }}
+      base_sha: ${{ steps.policy.outputs.base_sha }}
+      head_sha: ${{ steps.policy.outputs.head_sha }}
+      pull_number: ${{ steps.policy.outputs.pull_number }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Decide review policy
+        id: policy
+        uses: actions/github-script@v7
         with:
-          node-version: '20'
-          cache: 'npm'
+          script: |
+            const isFork = context.payload.pull_request.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo;
+            const mode = isFork ? 'heuristic' : 'auto';
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+            const labelNames = labels.map((label) => label.name).sort();
+            const hasComparisonLabel = labelNames.includes('run-comparison');
+            const hasParallelLabel = labelNames.includes('parallel-agents');
+            core.setOutput('mode', mode);
+            core.setOutput('compare', String(hasComparisonLabel));
+            core.setOutput('parallel', String(hasParallelLabel));
+            core.setOutput('base_sha', context.payload.pull_request.base.sha);
+            core.setOutput('head_sha', context.payload.pull_request.head.sha);
+            core.setOutput('pull_number', String(pull_number));
+            core.summary.addRaw(
+              [
+                `- PR from fork: ${isFork ? 'yes' : 'no'}`,
+                `- Analysis mode: ${mode}`,
+                `- Comparison enabled: ${hasComparisonLabel ? 'yes' : 'no'}`,
+                `- Parallel agents: ${hasParallelLabel ? 'yes' : 'no'}`,
+                '',
+              ].join('\n')
+            ).write();
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run PR review
-        run: npm run review-pr
-        env:
-          AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
-          AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
-          MODEL_DEPLOYMENT_NAME: ${{ secrets.MODEL_DEPLOYMENT_NAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  review:
+    needs: policy
+    uses: ./.github/workflows/pr-review-core.yml
+    with:
+      base_sha: ${{ needs.policy.outputs.base_sha }}
+      head_sha: ${{ needs.policy.outputs.head_sha }}
+      pull_number: ${{ needs.policy.outputs.pull_number }}
+      review_mode: ${{ needs.policy.outputs.mode }}
+      run_comparison: ${{ needs.policy.outputs.compare == 'true' }}
+      parallel_agents: ${{ needs.policy.outputs.parallel == 'true' }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      MULTIAGENT_MODEL: ${{ secrets.MULTIAGENT_MODEL }}

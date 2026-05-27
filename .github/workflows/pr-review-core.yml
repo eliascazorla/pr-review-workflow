@@ -1,0 +1,313 @@
+name: MultiAgent PR Review Core
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+      pull_number:
+        required: true
+        type: string
+      review_mode:
+        required: true
+        type: string
+      run_comparison:
+        required: false
+        type: boolean
+        default: false
+      parallel_agents:
+        required: false
+        type: boolean
+        default: false
+      tool_repo:
+        required: false
+        type: string
+        default: ""
+      tool_ref:
+        required: false
+        type: string
+        default: "main"
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+      OPENAI_BASE_URL:
+        required: false
+      MULTIAGENT_MODEL:
+        required: false
+      TOOL_REPO_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout review engine repository
+        if: inputs.tool_repo != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.tool_repo }}
+          ref: ${{ inputs.tool_ref }}
+          path: review-engine
+          fetch-depth: 0
+          token: ${{ secrets.TOOL_REPO_TOKEN || github.token }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install package
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tool_repo }}" ]; then
+            python -m pip install -e ./review-engine
+          else
+            cd MultiAgent-Orchestration-main
+            ls -la
+            python -m pip install -e .
+          fi
+
+      - name: Build PR diff
+        shell: bash
+        run: |
+          git diff --unified=3 "${{ inputs.base_sha }}" "${{ inputs.head_sha }}" > pr.diff
+
+      - name: Resolve PR labels
+        id: resolve_toggles
+        uses: actions/github-script@v7
+        env:
+          PULL_NUMBER: ${{ inputs.pull_number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = Number(process.env.PULL_NUMBER);
+            const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+            const labelNames = labels.map((label) => label.name).sort();
+            const hasComparisonLabel = labelNames.includes('run-comparison');
+            const hasParallelLabel = labelNames.includes('parallel-agents');
+            const hasQualityLabel = labelNames.includes('quality-review-needed');
+            const hasSecurityLabel = labelNames.includes('security-review-needed');
+            const hasTestsLabel = labelNames.includes('tests-coverage-review-needed');
+            core.setOutput('labels_json', JSON.stringify(labelNames));
+            core.setOutput('run_comparison', String(hasComparisonLabel));
+            core.setOutput('parallel_agents', String(hasParallelLabel));
+            core.setOutput('has_quality_label', String(hasQualityLabel));
+            core.setOutput('has_security_label', String(hasSecurityLabel));
+            core.setOutput('has_tests_label', String(hasTestsLabel));
+
+      - name: Run multi-agent review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          MULTIAGENT_MODEL: ${{ secrets.MULTIAGENT_MODEL }}
+          PARALLEL_FLAG: ${{ steps.resolve_toggles.outputs.parallel_agents == 'true' && '--parallel-agents' || '' }}
+          MULTIAGENT_RESOLVED_LABELS_JSON: ${{ steps.resolve_toggles.outputs.labels_json }}
+        run: |
+          multiagent-lab --input pr.diff --mode "${{ inputs.review_mode }}" $PARALLEL_FLAG --output report.md --json-output report.json --debug-output debug.json
+
+      - name: Run coordination comparison
+        if: steps.resolve_toggles.outputs.run_comparison == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          MULTIAGENT_MODEL: ${{ secrets.MULTIAGENT_MODEL }}
+          PARALLEL_FLAG: ${{ steps.resolve_toggles.outputs.parallel_agents == 'true' && '--parallel-agents' || '' }}
+          MULTIAGENT_RESOLVED_LABELS_JSON: ${{ steps.resolve_toggles.outputs.labels_json }}
+        run: |
+          multiagent-lab --input pr.diff --mode "${{ inputs.review_mode }}" $PARALLEL_FLAG --compare-agents --output comparison.md --json-output comparison.json --debug-output comparison-debug.json
+
+      - name: Publish summary
+        shell: bash
+        env:
+          REVIEW_MODE: ${{ inputs.review_mode }}
+          RUN_COMPARISON: ${{ steps.resolve_toggles.outputs.run_comparison }}
+          PARALLEL_AGENTS: ${{ steps.resolve_toggles.outputs.parallel_agents }}
+          OPENAI_API_KEY_PRESENT: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          EXECUTION_MODE=$(python -c "import json; print(json.load(open('report.json', encoding='utf-8'))['decisions'].get('execution_mode', 'not provided'))")
+          {
+            echo "## MultiAgent PR Review"
+            echo ""
+            echo "- Analysis mode: ${REVIEW_MODE}"
+            echo "- Parallel agents: ${PARALLEL_AGENTS}"
+            echo "- Comparison enabled: ${RUN_COMPARISON}"
+            echo "- OpenAI API key provided: ${OPENAI_API_KEY_PRESENT}"
+            echo "- Execution mode: ${EXECUTION_MODE}"
+            echo ""
+            cat report.md
+            if [ -f comparison.md ]; then
+              echo ""
+              echo "## Coordination Comparison"
+              echo ""
+              cat comparison.md
+            else
+              echo ""
+              echo "## Coordination Comparison"
+              echo ""
+              echo "The comparison report was not generated because the PR does not have the \`run-comparison\` label."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-reports
+          path: |
+            report.md
+            report.json
+            debug.json
+            comparison.md
+            comparison.json
+            comparison-debug.json
+          if-no-files-found: ignore
+
+      - name: Create inline review and labels
+        uses: actions/github-script@v7
+        id: review
+        env:
+          PULL_NUMBER: ${{ inputs.pull_number }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('report.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const pull_number = Number(process.env.PULL_NUMBER);
+            const commit_id = process.env.HEAD_SHA;
+            const labelDefinitions = [
+              {
+                name: 'quality-review-needed',
+                color: '1d76db',
+                description: 'MultiAgent found code quality findings that need attention.',
+                dimension: 'quality',
+              },
+              {
+                name: 'security-review-needed',
+                color: 'd73a4a',
+                description: 'MultiAgent found security findings that need attention.',
+                dimension: 'security',
+              },
+              {
+                name: 'tests-coverage-review-needed',
+                color: '7057ff',
+                description: 'MultiAgent found test coverage findings that need attention.',
+                dimension: 'tests_coverage',
+              },
+            ];
+
+            const reviewComments = [];
+            const dimensionsWithFindings = new Set();
+
+            for (const analysis of report.analyses) {
+              for (const finding of analysis.findings) {
+                if (!finding.file || !finding.line) {
+                  continue;
+                }
+                dimensionsWithFindings.add(analysis.dimension);
+                reviewComments.push({
+                  path: finding.file,
+                  line: finding.line,
+                  side: 'RIGHT',
+                  body: `[${analysis.dimension}] ${finding.message}\n\nSuggestion: ${finding.suggestion}`,
+                });
+              }
+            }
+
+            if (reviewComments.length > 0) {
+              await github.rest.pulls.createReview({
+                owner,
+                repo,
+                pull_number,
+                commit_id,
+                event: 'REQUEST_CHANGES',
+                body: 'MultiAgent found findings that need to be addressed before merge.',
+                comments: reviewComments,
+              });
+            }
+
+            const current = await github.rest.issues.listLabelsOnIssue({ owner, repo, issue_number: pull_number });
+            const currentNames = new Set(current.data.map((label) => label.name));
+            const labelsToAdd = [];
+
+            for (const definition of labelDefinitions) {
+              if (!dimensionsWithFindings.has(definition.dimension)) {
+                continue;
+              }
+
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: definition.name });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: definition.name,
+                  color: definition.color,
+                  description: definition.description,
+                });
+              }
+
+              if (!currentNames.has(definition.name)) {
+                labelsToAdd.push(definition.name);
+              }
+            }
+
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pull_number,
+                labels: labelsToAdd,
+              });
+            }
+
+            core.setOutput('has_findings', String(reviewComments.length > 0));
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+            const marker = '<!-- multiagent-pr-review -->';
+            const body = `${marker}\n\n${fs.readFileSync('report.md', 'utf8')}`;
+            const existing = comments.find((comment) => comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body,
+              });
+            }
+
+      - name: Block merge when findings exist
+        if: steps.review.outputs.has_findings == 'true'
+        run: exit 1
