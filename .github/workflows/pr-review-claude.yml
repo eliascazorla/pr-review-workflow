@@ -1,28 +1,30 @@
-name: PR Review (Claude + Foundry)
-
+name: PR Review (Claude + Bedrock)
+ 
 on:
   pull_request:
     types: [opened, ready_for_review, synchronize, reopened]
 
 permissions:
-  contents: read
-  pull-requests: write
-
+  id-token: write
+ 
 jobs:
   review:
     runs-on: ubuntu-latest
-
+ 
     steps:
       - uses: actions/checkout@v4
-
+ 
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+ 
       - uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          use_foundry: "true"
-          claude_args: "--model claude-haiku-4-5 --max-turns 10"
+          use_bedrock: "true"
+          claude_args: "--model us.anthropic.claude-haiku-4-5 --max-turns 10"
           plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
           plugins: "pr-review-toolkit@claude-plugins-official"
-          prompt: "Review my code before I merge this PR"
-        env:
-          ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
-          ANTHROPIC_FOUNDRY_BASE_URL: ${{ secrets.ANTHROPIC_FOUNDRY_BASE_URL }}
+          prompt: "Review changes only on pull request"
