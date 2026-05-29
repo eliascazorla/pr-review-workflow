@@ -6,6 +6,8 @@ on:
 
 permissions:
   id-token: write
+  contents: read
+  pull-requests: write
  
 jobs:
   review:
@@ -28,4 +30,4 @@ jobs:
           claude_args: "--model us.anthropic.claude-haiku-4-5-20251001-v1:0 --max-turns 10"
           plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
           plugins: "pr-review-toolkit@claude-plugins-official"
-          prompt: "Review changes only on pull request"
+          prompt: "Review the current pull request changes"
