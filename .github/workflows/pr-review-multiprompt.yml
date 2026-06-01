@@ -7,6 +7,9 @@ on:
 jobs:
   review:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: multi-prompt
     permissions:
       pull-requests: write  # needed to post review comments
 
