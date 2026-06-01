@@ -5,10 +5,10 @@
   "main": "dist/src/main.js",
   "scripts": {
     "dev": "ts-node src/main.ts",
-    "review-pr": "ts-node --project cli/tsconfig.json cli/review-pr.ts",
+    "review-pr": "ts-node src/review-pr.ts",
     "build": "tsc",
-    "build:cli": "tsc --project cli/tsconfig.json",
-    "typecheck:cli": "tsc --project cli/tsconfig.json --noEmit",
+    "build:cli": "tsc",
+    "typecheck:cli": "tsc --noEmit",
     "start": "node dist/src/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
