@@ -62,48 +62,14 @@ class QualityAgent(BaseAgent):
                 },
             },
         }
-        
-        # Format system prompt with context variables from WorkflowContext
-        system_prompt = QUALITY_SYSTEM_PROMPT.format(
-            review_id=self.context.get("review_id", "unknown"),
-            repo_owner=self.context.get("repo_owner", "unknown"),
-            repo_name=self.context.get("repo_name", "unknown"),
-            pr_number=self.context.get("pr_number", "unknown"),
-        )
-        
-        # Build analysis summary from code_analyzer context
-        analysis_summary = ""
-        code_analysis = self.context.get("code_analysis")
-        if code_analysis:
-            complexity_score = code_analysis.get("complexity_score", 0)
-            security_issues_length = len(code_analysis.get("security_issues", []))
-            patterns_found = code_analysis.get("patterns_found", [])
-            patterns_str = ", ".join(patterns_found) if patterns_found else "None"
-            tech_debt_length = len(code_analysis.get("tech_debt", []))
-            analysis_summary = f"""
-Previous Code Analysis:
-- Complexity: {complexity_score}/10
-- Security Issues: {security_issues_length}
-- Patterns Found: {patterns_str}
-- Tech Debt Items: {tech_debt_length}
-"""
-        
-        # Format user_prompt to match TypeScript userMessage format
-        repo_owner = self.context.get("repo_owner", "unknown")
-        repo_name = self.context.get("repo_name", "unknown")
-        title = self.context.get("title", "PR")
-        
-        user_prompt = f"""Evaluate the code quality for this PR:
-
-Repository: {repo_owner}/{repo_name}
-PR Title: {title}
-{analysis_summary}
-
-Provide quality metrics including readability score (0-10), test coverage estimate (0-100), performance concerns, and overall quality score (0-10)."""
-        
         result = self.llm.call_tool(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            system_prompt=QUALITY_SYSTEM_PROMPT,
+            user_prompt=(
+                "Analyze this diff for code quality issues. "
+                "Return only findings that can be tied to a specific file and line. "
+                "Use the exact line numbers from the provided context.\n\n"
+                f"{self._render_llm_context(diff)}"
+            ),
             tool=tool,
         )
         payload = result.payload

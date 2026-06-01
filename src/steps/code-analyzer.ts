@@ -4,7 +4,7 @@ import { CodeAnalysisResultSchema, CodeAnalysisResult, PRMetadata } from '../mod
 import logger from '../logger';
 
 /**
- * Security Analysis step - analyzes code changes in PR
+ * Code Analysis step - analyzes code changes in PR
  */
 export class CodeAnalyzerStep extends PipelineStep {
   constructor(private llmClient: LLMClient) {
@@ -17,14 +17,19 @@ export class CodeAnalyzerStep extends PipelineStep {
     logger.info(`Analyzing code for PR #${prMetadata.pr_number}`);
 
     // Prepare diff summary (limit size for LLM)
-    const diffSummary = prMetadata.diff.substring(0, 60000);
+    const diffSummary = prMetadata.diff.substring(0, 3000);
     const limitedDiff =
-      prMetadata.diff.length > 60000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
+      prMetadata.diff.length > 3000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
 
-    const systemPrompt = `You are a security reviewer. 
-Focus only on secrets, injection risks, dangerous primitives, vulnerable dependency hints, and unsafe shell usage. 
-Do not comment on naming or code style unless it creates a security risk. 
-Return a concise summary and a short list of actionable findings.`;
+    const systemPrompt = `You are a code review expert. Analyze the provided GitHub PR diff and return a comprehensive code analysis in JSON format.
+
+Focus on:
+1. Code complexity and maintainability
+2. Security vulnerabilities and concerns
+3. Design patterns used or violated
+4. Technical debt and code smell indicators
+
+Be specific and technical in your analysis.`;
 
     const userMessage = `Analyze this GitHub PR:
 

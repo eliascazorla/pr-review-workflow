@@ -15,12 +15,10 @@ class BaseAgent(ABC):
         llm: OpenAICompatibleClient | None = None,
         llm_startup_state: str = "disabled",
         default_fallback_reason: str = "missing_secret",
-        context: dict | None = None,
     ) -> None:
         self.llm = llm
         self.llm_startup_state = llm_startup_state
         self.default_fallback_reason = default_fallback_reason
-        self.context = context or {}
 
     def _resolve_line(self, diff: ParsedDiff, file_path: str, requested_line: int) -> int | None:
         added_lines = [

@@ -62,28 +62,14 @@ class SecurityAgent(BaseAgent):
                 },
             },
         }
-        
-        # Format user_prompt with context variables from WorkflowContext
-        repo_owner = self.context.get("repo_owner", "unknown")
-        repo_name = self.context.get("repo_name", "unknown")
-        pr_number = self.context.get("pr_number", "unknown")
-        title = self.context.get("title", "PR")
-        description = self.context.get("description", "No description provided")
-        
-        user_prompt = f"""Analyze this GitHub PR:
-
-Repository: {repo_owner}/{repo_name}
-PR Title: {title}
-PR Description: {description}
-
-Code Diff:
-{self._render_llm_context(diff)}
-
-Return a detailed JSON analysis with complexity score, security issues, patterns, and technical debt."""
-        
         result = self.llm.call_tool(
             system_prompt=SECURITY_SYSTEM_PROMPT,
-            user_prompt=user_prompt,
+            user_prompt=(
+                "Analyze this diff for security issues. "
+                "Return only findings that can be tied to a specific file and line. "
+                "Use the exact line numbers from the provided context.\n\n"
+                f"{self._render_llm_context(diff)}"
+            ),
             tool=tool,
         )
         payload = result.payload

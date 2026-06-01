@@ -33,28 +33,23 @@ class Supervisor:
         include_tests_coverage: bool = True,
         llm_startup_state: str = "disabled",
         default_fallback_reason: str = "missing_secret",
-        context: dict | None = None,
     ) -> "Supervisor":
-        context = context or {}
         return cls(
             quality_agent=QualityAgent(
                 llm=llm,
                 llm_startup_state=llm_startup_state,
                 default_fallback_reason=default_fallback_reason,
-                context=context,
             ),
             security_agent=SecurityAgent(
                 llm=llm,
                 llm_startup_state=llm_startup_state,
                 default_fallback_reason=default_fallback_reason,
-                context=context,
             ),
             tests_coverage_agent=(
                 TestsCoverageAgent(
                     llm=llm,
                     llm_startup_state=llm_startup_state,
                     default_fallback_reason=default_fallback_reason,
-                    context=context,
                 )
                 if include_tests_coverage
                 else None

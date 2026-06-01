@@ -55,10 +55,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.getenv("MULTIAGENT_LOG_LEVEL", "INFO"),
         help="Logging level for debug traces.",
     )
-    parser.add_argument("--review-id", help="Optional review ID from WorkflowContext.")
-    parser.add_argument("--repo-owner", help="Optional repository owner from WorkflowContext.")
-    parser.add_argument("--repo-name", help="Optional repository name from WorkflowContext.")
-    parser.add_argument("--pr-number", help="Optional PR number from WorkflowContext.")
     return parser
 
 
@@ -107,17 +103,6 @@ def main() -> int:
     except json.JSONDecodeError:
         resolved_labels = []
 
-    # Build context from CLI arguments
-    context = {}
-    if args.review_id:
-        context["review_id"] = args.review_id
-    if args.repo_owner:
-        context["repo_owner"] = args.repo_owner
-    if args.repo_name:
-        context["repo_name"] = args.repo_name
-    if args.pr_number:
-        context["pr_number"] = args.pr_number
-
     raw = load_input(args.input)
     parsed = parse_unified_diff(raw)
     llm, llm_startup_state, fallback_reason = build_llm(args)
@@ -139,7 +124,6 @@ def main() -> int:
             llm=llm,
             llm_startup_state=llm_startup_state,
             default_fallback_reason=fallback_reason,
-            context=context,
         )
         report = supervisor.run_with_context(
             parsed,
