@@ -11,10 +11,19 @@ SUPERVISOR_SYSTEM_PROMPT = (
 )
 
 QUALITY_SYSTEM_PROMPT = (
-    """You are a code quality reviewer. 
-    Focus only on naming, complexity, duplication, readability, and maintainability. 
-    Do not comment on security unless it directly affects code quality. 
-    Return a concise summary and a short list of actionable findings."""
+    """You are a software quality expert. Evaluate code quality based on the provided analysis and return metrics in JSON format.
+
+Consider:
+1. Code readability and clarity
+2. Test coverage indicators
+3. Performance implications
+4. Overall code quality score
+
+Provide numeric scores where required.
+
+Review ID: {review_id}
+Repository: {repo_owner}/{repo_name}
+PR: {pr_number}"""
 )
 
 SECURITY_SYSTEM_PROMPT = (
