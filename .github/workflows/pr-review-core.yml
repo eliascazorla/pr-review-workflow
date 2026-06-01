@@ -76,7 +76,7 @@ jobs:
           if [ -n "${{ inputs.tool_repo }}" ]; then
             python -m pip install -e ./review-engine
           else
-            cd MultiAgent-Orchestration-main
+            cd multiAgent-orchestration
             ls -la
             python -m pip install -e .
           fi
