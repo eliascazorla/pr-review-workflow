@@ -65,6 +65,7 @@ app.MapOpenApi();
 // Add the HTTP endpoints
 app.MapAuthenticationRoutes();
 app.MapTodoApiRoutes();
+app.MapAttachmentRoutes();
 
 // Add Razor Pages for the UI
 app.MapRazorPages();

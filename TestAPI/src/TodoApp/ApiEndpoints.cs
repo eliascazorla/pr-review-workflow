@@ -26,6 +26,7 @@ public static class ApiEndpoints
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ITodoRepository, TodoRepository>();
         services.AddScoped<ITodoService, TodoService>();
+        services.AddAttachmentServices();
 
         services.AddDbContext<TodoContext>((serviceProvider, options) =>
         {

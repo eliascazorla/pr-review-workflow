@@ -14,4 +14,6 @@ public class TodoItem
     public DateTime CreatedAt { get; set; }
 
     public DateTime? CompletedAt { get; set; }
+
+    public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 }
