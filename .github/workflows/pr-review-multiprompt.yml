@@ -32,3 +32,65 @@ jobs:
           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
           MODEL_DEPLOYMENT_NAME: ${{ secrets.MODEL_DEPLOYMENT_NAME }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish cost summary and comparison artifact
+        if: always()
+        working-directory: multi-prompt
+        env:
+          MODEL_CANONICAL_NAME: ${{ secrets.MODEL_CANONICAL_NAME }}
+        run: |
+          python3 << 'EOF'
+          import json, os, urllib.request
+          try:
+              url = 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json'
+              pricing = json.loads(urllib.request.urlopen(url, timeout=5).read())
+          except Exception:
+              pricing = {}
+          d = json.load(open('token-usage.json', encoding='utf-8'))
+          deployment = d.get('model', 'unknown')
+          pricing_key = os.environ.get('MODEL_CANONICAL_NAME') or deployment
+          mp = pricing.get(pricing_key, {})
+          ip = mp.get('input_cost_per_token', 0) * 1_000_000
+          op = mp.get('output_cost_per_token', 0) * 1_000_000
+          tu = d['token_usage']
+          def calc_cost(prompt, completion):
+              if not ip and not op:
+                  return None
+              return round((prompt * ip + completion * op) / 1_000_000, 6)
+          total_cost = calc_cost(tu['prompt_tokens'], tu['completion_tokens'])
+          summary = {
+              'workflow': 'multiprompt',
+              'model': deployment,
+              'pricing_key': pricing_key,
+              'input_tokens': tu['prompt_tokens'],
+              'output_tokens': tu['completion_tokens'],
+              'cost_usd': total_cost,
+              'runtime_s': None,
+              'findings': d.get('findings'),
+              'steps_invoked': d.get('steps_invoked', []),
+          }
+          with open('comparison-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          cost_str = '${:.4f}'.format(total_cost) if total_cost is not None else 'N/A'
+          lines = [
+              '## Token Usage & Cost',
+              '**Model:** `{}` (pricing key: `{}`)'.format(deployment, pricing_key),
+              '**Total Cost:** {}'.format(cost_str),
+              '',
+              '| Step | Input Tokens | Output Tokens | Cost USD |',
+              '|------|--------------|---------------|----------|',
+              '| **total** | **{:,}** | **{:,}** | **{}** |'.format(
+                  tu['prompt_tokens'], tu['completion_tokens'], cost_str),
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write('\n'.join(lines) + '\n')
+          EOF
+
+      - name: Upload comparison artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-comparison-multiprompt
+          path: multi-prompt/comparison-summary.json
+          if-no-files-found: ignore
+
