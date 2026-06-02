@@ -16,6 +16,7 @@ import type {
   CodeAnalysisResult,
   QualityMetricsResult,
   ReviewCommentsResult,
+  ReviewAction,
 } from './models';
 
 interface PRContext {
@@ -231,6 +232,16 @@ async function main(): Promise<void> {
     workflow.getQualityResult() as QualityMetricsResult | undefined,
     workflow.getReviewComments() as ReviewCommentsResult | undefined
   );
+
+  const tokenUsage = llmClient.getTokenUsage();
+  const actionResult = workflow.getReviewAction() as ReviewAction | undefined;
+  fs.writeFileSync('token-usage.json', JSON.stringify({
+    model: config.modelDeploymentName,
+    token_usage: tokenUsage,
+    findings: actionResult?.comments?.length ?? null,
+    steps_invoked: ['code_analyzer', 'quality_evaluator', 'review_generator', 'action_executor'],
+  }, null, 2));
+  logger.info(`Token usage written: ${JSON.stringify(tokenUsage)}`);
 
   await llmClient.close();
 }
