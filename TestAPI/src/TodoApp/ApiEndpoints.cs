@@ -104,7 +104,7 @@ public static class ApiEndpoints
                     return TypedResults.Created($"/api/items/{id}", new CreatedTodoItemModel() { Id = id });
                 })
                 .ProducesProblem(StatusCodes.Status400BadRequest)
-                .WithSummary("Create a new Todo item")
+                .WithSummary("Create a new Todo item!")
                 .WithDescription("Creates a new todo item for the current user and returns its ID.");
 
             group.MapPost("/{id}/complete", async Task<Results<NoContent, ProblemHttpResult>> (
