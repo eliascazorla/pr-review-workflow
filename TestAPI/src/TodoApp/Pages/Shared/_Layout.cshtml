@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TodoApp</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" integrity="sha512-2bBQCjcnw658Lho4nlXJcc6WkV/UxpE/sAokbXPxQNGqmNdQrWqtw26Ns9kFF/yG792pKR1Sx8/Y1Lf1XN4GKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">TodoApp</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#site-navbar" aria-controls="site-navbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="site-navbar">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="~/" title="My Todo List">My List</a>
+                    </li>
+                </ul>
+                @if (User.Identity!.IsAuthenticated)
+                {
+                    <form action="~/sign-out" method="post" class="navbar-right">
+                        <ul class="nav navbar-nav navbar-right">
+                            <li>
+                                @{
+                                    string displayName = User.GetUserName();
+                                    string profileUrl = User.GetProfileUrl();
+                                    string? avatarUrl = User.GetAvatarUrl();
+                                }
+                                <a class="nav-link" href="@profileUrl" title="GitHub" target="_blank">
+                                    <span id="user-name">@displayName</span>
+                                    @if (!string.IsNullOrWhiteSpace(avatarUrl))
+                                    {
+                                        <img src="@avatarUrl" class="user-profile" alt="@displayName" title="@displayName" aria-hidden="true" />
+                                    }
+                                </a>
+                            </li>
+                            <li>
+                                <button type="submit" class="btn btn-link navbar-btn nav-link" title="Sign out" id="sign-out">
+                                    Sign out
+                                    <span class="fa-solid fa-right-from-bracket" aria-hidden="true"></span>
+                                </button>
+                            </li>
+                        </ul>
+                    </form>
+                }
+            </div>
+        </div>
+    </nav>
+    <main class="container body-content">
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>&copy; @(DateTimeOffset.UtcNow.Year) - Martin Costello</p>
+        </footer>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js" integrity="sha512-HvOjJrdwNpDbkGJIG2ZNqDlVqMo77qbs4Me4cah0HoDrfhrbA+8SBlZn1KrvAQw7cILLPFJvdwIgphzQmMm+Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="~/static/js/main.js"></script>
+</body>
+</html>

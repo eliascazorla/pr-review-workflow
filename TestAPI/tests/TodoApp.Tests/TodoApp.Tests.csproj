@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA1861</NoWarn>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TodoApp</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="coverlet.msbuild" Version="10.0.1" PrivateAssets="All" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="3.0.4" />
+    <PackageReference Include="JunitXml.TestLogger" Version="8.0.0" />
+    <PackageReference Include="JustEat.HttpClientInterception" Version="5.1.2" />
+    <PackageReference Include="MartinCostello.Logging.XUnit.v3" Version="0.7.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.60.0" />
+    <PackageReference Include="ReportGenerator" Version="5.5.10" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="xunit.v3.mtp-off" Version="3.2.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="oauth-http-bundle.json;xunit.runner.json;xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="localhost-dev.pfx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TodoApp\TodoApp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Shouldly" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutput Condition=" '$(OutputPath)' != '' ">$([MSBuild]::EnsureTrailingSlash('$(OutputPath)'))</CoverletOutput>
+    <CoverletOutputFormat>cobertura,json</CoverletOutputFormat>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(CollectCoverage)' == 'true' ">
+    <ReportGeneratorOutputMarkdown Condition=" '$(ReportGeneratorOutputMarkdown)' == '' AND '$(GITHUB_SHA)' != '' ">true</ReportGeneratorOutputMarkdown>
+    <ReportGeneratorReportTypes>HTML</ReportGeneratorReportTypes>
+    <ReportGeneratorReportTypes Condition=" '$(ReportGeneratorOutputMarkdown)' == 'true' ">$(ReportGeneratorReportTypes);MarkdownSummaryGitHub</ReportGeneratorReportTypes>
+    <ReportGeneratorTargetDirectory>$([System.IO.Path]::Combine($(OutputPath), 'coverage-reports'))</ReportGeneratorTargetDirectory>
+  </PropertyGroup>
+  <Target Name="GenerateCoverageReports" AfterTargets="GenerateCoverageResultAfterTest" Condition=" '$(CollectCoverage)' == 'true' ">
+    <ReportGenerator ReportFiles="@(CoverletReport)" ReportTypes="$(ReportGeneratorReportTypes)" Tag="$(Version)" TargetDirectory="$(ReportGeneratorTargetDirectory)" Title="$(AssemblyName)" VerbosityLevel="Warning" />
+    <PropertyGroup Condition=" '$(ReportGeneratorOutputMarkdown)' == 'true' ">
+      <_ReportSummaryContent>&lt;details&gt;&lt;summary&gt;:chart_with_upwards_trend: &lt;b&gt;$(AssemblyName) Code Coverage report&lt;/b&gt;&lt;/summary&gt;</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)$([System.Environment]::NewLine)</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)$([System.Environment]::NewLine)</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)$([System.IO.File]::ReadAllText('$([System.IO.Path]::Combine($(ReportGeneratorTargetDirectory), 'SummaryGithub.md'))'))</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)$([System.Environment]::NewLine)</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)$([System.Environment]::NewLine)</_ReportSummaryContent>
+      <_ReportSummaryContent>$(_ReportSummaryContent)&lt;/details&gt;</_ReportSummaryContent>
+    </PropertyGroup>
+    <WriteLinesToFile Condition=" '$(ReportGeneratorOutputMarkdown)' == 'true' " ContinueOnError="WarnAndContinue" File="$(GITHUB_STEP_SUMMARY)" Lines="$(_ReportSummaryContent)" />
+  </Target>
+</Project>
