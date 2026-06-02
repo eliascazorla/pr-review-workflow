@@ -28,7 +28,7 @@ jobs:
           use_bedrock: "true"
           show_full_output: true
           claude_args: |
-            --model us.anthropic.claude-haiku-4-5-20251001-v1:0
+            --model ${{ secrets.CLAUDE_MODEL }}
             --max-turns 10
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(gh pr list),Skill"
           plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
@@ -38,3 +38,56 @@ jobs:
             After completing the review, run this exact command to post it:
             gh pr comment ${{ github.event.pull_request.number }} --body "<your full review here>"
             Do not return the review as text — only post via gh pr comment.
+
+      - name: Publish cost summary and comparison artifact
+        if: always()
+        run: |
+          python3 << 'EOF'
+          import json, os
+          output_file = os.path.join(os.environ.get('RUNNER_TEMP', '/tmp'), 'claude-execution-output.json')
+          try:
+              d = json.load(open(output_file, encoding='utf-8'))
+          except Exception:
+              d = {}
+          model_usage = d.get('modelUsage', {})
+          total_input = sum(v.get('inputTokens', 0) for v in model_usage.values())
+          total_output = sum(v.get('outputTokens', 0) for v in model_usage.values())
+          total_cost = d.get('total_cost_usd')
+          models = list(model_usage.keys())
+          summary = {
+              'workflow': 'claude',
+              'model': models[0] if len(models) == 1 else models,
+              'input_tokens': total_input,
+              'output_tokens': total_output,
+              'cost_usd': total_cost,
+              'runtime_s': None,
+              'findings': None,
+              'agents_invoked': ['pr-review-toolkit'],
+          }
+          with open('comparison-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          cost_str = '${:.4f}'.format(total_cost) if total_cost is not None else 'N/A'
+          rows = []
+          for m, v in model_usage.items():
+              rows.append('| {} | {:,} | {:,} | ${:.4f} |'.format(
+                  m, v.get('inputTokens', 0), v.get('outputTokens', 0), v.get('costUSD', 0)))
+          rows.append('| **total** | **{:,}** | **{:,}** | **{}** |'.format(
+              total_input, total_output, cost_str))
+          lines = [
+              '## Token Usage & Cost',
+              '**Total Cost:** {}'.format(cost_str),
+              '',
+              '| Model | Input Tokens | Output Tokens | Cost USD |',
+              '|-------|--------------|---------------|----------|',
+          ] + rows
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write('\n'.join(lines) + '\n')
+          EOF
+
+      - name: Upload comparison artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-comparison-claude
+          path: comparison-summary.json
+          if-no-files-found: ignore

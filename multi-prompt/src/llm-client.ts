@@ -4,6 +4,12 @@ import logger from './logger';
 import { config } from './config';
 import zodToJsonSchema from 'zod-to-json-schema';
 
+export interface TokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
 /**
  * LLM Client for making structured output calls with JSON validation
  */
@@ -11,6 +17,7 @@ export class LLMClient {
   private client: OpenAI;
   private modelDeploymentName: string;
   private maxRetries: number;
+  private tokenUsage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
   constructor() {
     this.client = new OpenAI({
@@ -56,6 +63,11 @@ Ensure the JSON is valid and complete.`;
         });
 
         const content = response.choices[0].message.content?.trim() ?? '';
+        if (response.usage) {
+          this.tokenUsage.prompt_tokens += response.usage.prompt_tokens ?? 0;
+          this.tokenUsage.completion_tokens += response.usage.completion_tokens ?? 0;
+          this.tokenUsage.total_tokens += response.usage.total_tokens ?? 0;
+        }
         const jsonContent = this.extractJSON(content);
 
         // Parse with Zod schema
@@ -115,6 +127,10 @@ Ensure the JSON is valid and complete.`;
     }
 
     throw new Error('Could not extract valid JSON from content');
+  }
+
+  getTokenUsage(): TokenUsage {
+    return { ...this.tokenUsage };
   }
 
   async close(): Promise<void> {
