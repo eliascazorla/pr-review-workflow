@@ -34,26 +34,35 @@ if (string.Equals(builder.Configuration["CODESPACES"], "true", StringComparison.
         options => options.ForwardedHeaders |= ForwardedHeaders.XForwardedHost);
 }
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllCors", policy =>
+    {
+        policy
+            .AllowAnyOrigin()        
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithExposedHeaders("*");
+    });
+});
+
 // Create the app
 var app = builder.Build();
 
-// Configure error handling
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/error");
-}
-
-app.UseStatusCodePagesWithReExecute("/error", "?id={0}");
 
 // Require use of HTTPS in production
 if (!app.Environment.IsDevelopment())
 {
-    app.UseHsts();
-    app.UseHttpsRedirection();
+
+    
+    System.Console.WriteLine(".");
 }
 
 // Add static files for JavaScript, CSS and OpenAPI
 app.UseStaticFiles();
+
+
+app.UseCors("AllowAllCors");
 
 // Add authN for GitHub
 app.UseAuthentication();

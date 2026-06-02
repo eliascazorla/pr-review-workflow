@@ -16,4 +16,6 @@ public interface ITodoService
     Task<TodoItemModel?> GetAsync(string userId, Guid itemId, CancellationToken cancellationToken);
 
     Task<TodoListViewModel> GetListAsync(string userId, CancellationToken cancellationToken);
+
+    Task<IList<TodoItemModel>> SearchItemsVulnerableAsync(string userId, string searchText, CancellationToken cancellationToken);
 }

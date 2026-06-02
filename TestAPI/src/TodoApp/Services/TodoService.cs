@@ -68,6 +68,16 @@ public sealed class TodoService(ITodoRepository repository) : ITodoService
         return result;
     }
 
+    public async Task<IList<TodoItemModel>> SearchItemsVulnerableAsync(
+        string userId,
+        string searchText,
+        CancellationToken cancellationToken)
+    {
+        var items = await repository.SearchItemsByTextVulnerableAsync(userId, searchText, cancellationToken);
+
+        return items.Select(MapItem).ToList();
+    }
+
     private static TodoItemModel MapItem(TodoItem item)
     {
         return new TodoItemModel
