@@ -65,16 +65,19 @@ jobs:
               'input_tokens': tu['prompt_tokens'],
               'output_tokens': tu['completion_tokens'],
               'cost_usd': total_cost,
-              'runtime_s': None,
+              'runtime_s': d.get('runtime_s'),
               'findings': d.get('findings'),
               'steps_invoked': d.get('steps_invoked', []),
           }
           with open('comparison-summary.json', 'w') as f:
               json.dump(summary, f, indent=2)
           cost_str = '${:.4f}'.format(total_cost) if total_cost is not None else 'N/A'
+          runtime = d.get('runtime_s')
+          runtime_str = '{:.1f}s'.format(runtime) if runtime is not None else 'N/A'
           lines = [
               '## Token Usage & Cost',
               '**Model:** `{}` (pricing key: `{}`)'.format(deployment, pricing_key),
+              '**Runtime:** {}'.format(runtime_str),
               '**Total Cost:** {}'.format(cost_str),
               '',
               '| Step | Input Tokens | Output Tokens | Cost USD |',
