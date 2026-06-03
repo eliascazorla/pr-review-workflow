@@ -236,10 +236,12 @@ async function main(): Promise<void> {
   );
 
   const tokenUsage = llmClient.getTokenUsage();
+  const stepUsage = llmClient.getTokenUsageByStep();
   const actionResult = workflow.getReviewAction() as ReviewAction | undefined;
   fs.writeFileSync('token-usage.json', JSON.stringify({
     model: config.modelDeploymentName,
     token_usage: tokenUsage,
+    token_usage_by_step: stepUsage,
     findings: actionResult?.comments?.length ?? null,
     runtime_s: runtimeS,
     steps_invoked: ['code_analyzer', 'quality_evaluator', 'review_generator', 'action_executor'],

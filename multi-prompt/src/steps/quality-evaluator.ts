@@ -30,7 +30,8 @@ Consider:
 3. Performance implications
 4. Overall code quality score
 
-Provide numeric scores where required.`;
+Provide numeric scores where required.
+Include a confidence score (0.0–1.0) reflecting how certain you are in your evaluation given the available context.`;
 
     let analysisSummary = '';
     if (codeAnalysis) {
@@ -54,10 +55,13 @@ Provide quality metrics including readability score (0-10), test coverage estima
     const result = await this.llmClient.callWithSchema(
       QualityMetricsResultSchema,
       systemPrompt,
-      userMessage
+      userMessage,
+      0,
+      4096,
+      'quality_evaluator'
     );
 
-    logger.info(`Quality evaluation completed with score: ${result.overall_quality_score}/10`);
+    logger.info(`Quality evaluation completed with score: ${result.overall_quality_score}/10, confidence: ${result.confidence}`);
     return result;
   }
 }

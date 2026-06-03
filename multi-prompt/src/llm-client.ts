@@ -10,6 +10,13 @@ export interface TokenUsage {
   total_tokens: number;
 }
 
+export interface StepTokenUsage {
+  step: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
 /**
  * LLM Client for making structured output calls with JSON validation
  */
@@ -18,6 +25,7 @@ export class LLMClient {
   private modelDeploymentName: string;
   private maxRetries: number;
   private tokenUsage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  private stepTokenUsage: Map<string, TokenUsage> = new Map();
 
   constructor() {
     this.client = new OpenAI({
@@ -36,8 +44,9 @@ export class LLMClient {
     schema: T,
     systemPrompt: string,
     userMessage: string,
-    temperature: number = 0.7,
-    maxTokens: number = 4096
+    temperature: number = 0,
+    maxTokens: number = 4096,
+    stepName: string = 'unknown'
   ): Promise<z.output<T>> {
     const fullSystemPrompt = `${systemPrompt}
 
@@ -64,9 +73,18 @@ Ensure the JSON is valid and complete.`;
 
         const content = response.choices[0].message.content?.trim() ?? '';
         if (response.usage) {
-          this.tokenUsage.prompt_tokens += response.usage.prompt_tokens ?? 0;
-          this.tokenUsage.completion_tokens += response.usage.completion_tokens ?? 0;
-          this.tokenUsage.total_tokens += response.usage.total_tokens ?? 0;
+          const pt = response.usage.prompt_tokens ?? 0;
+          const ct = response.usage.completion_tokens ?? 0;
+          const tt = response.usage.total_tokens ?? 0;
+          this.tokenUsage.prompt_tokens += pt;
+          this.tokenUsage.completion_tokens += ct;
+          this.tokenUsage.total_tokens += tt;
+          const existing = this.stepTokenUsage.get(stepName) ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+          this.stepTokenUsage.set(stepName, {
+            prompt_tokens: existing.prompt_tokens + pt,
+            completion_tokens: existing.completion_tokens + ct,
+            total_tokens: existing.total_tokens + tt,
+          });
         }
         const jsonContent = this.extractJSON(content);
 
@@ -131,6 +149,13 @@ Ensure the JSON is valid and complete.`;
 
   getTokenUsage(): TokenUsage {
     return { ...this.tokenUsage };
+  }
+
+  getTokenUsageByStep(): StepTokenUsage[] {
+    return Array.from(this.stepTokenUsage.entries()).map(([step, usage]) => ({
+      step,
+      ...usage,
+    }));
   }
 
   async close(): Promise<void> {
