@@ -45,7 +45,7 @@ export class LLMClient {
     systemPrompt: string,
     userMessage: string,
     temperature: number = 0,
-    maxTokens: number = 4096,
+    maxTokens: number = 12000,
     stepName: string = 'unknown'
   ): Promise<z.output<T>> {
     const fullSystemPrompt = `${systemPrompt}
