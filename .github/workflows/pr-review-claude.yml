@@ -34,7 +34,18 @@ jobs:
           plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
           plugins: "pr-review-toolkit@claude-plugins-official"
           prompt: |
-            Review the current pull request and post the findings directly to GitHub.
+            You are a software quality expert and security reviewer.
+            Evaluate code quality based on the provided analysis and return metrics in JSON format.
+            For security, focus on secrets, injection risks, dangerous primitives, vulnerable dependency hints, and unsafe shell usage. 
+            Return a concise summary and a short list of actionable findings.
+
+            Consider:
+            1. Code readability and clarity
+            2. Test coverage indicators
+            3. Performance implications
+            4. Overall code quality score
+
+            Provide numeric scores where required.
             After completing the review, run this exact command to post it:
             gh pr comment ${{ github.event.pull_request.number }} --body "<your full review here>"
             Do not return the review as text — only post via gh pr comment.
