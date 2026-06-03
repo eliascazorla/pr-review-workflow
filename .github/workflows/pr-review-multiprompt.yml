@@ -58,6 +58,9 @@ jobs:
                   return None
               return round((prompt * ip + completion * op) / 1_000_000, 6)
           total_cost = calc_cost(tu['prompt_tokens'], tu['completion_tokens'])
+          step_usage = d.get('token_usage_by_step', [])
+          for s in step_usage:
+              s['cost_usd'] = calc_cost(s['prompt_tokens'], s['completion_tokens'])
           summary = {
               'workflow': 'multiprompt',
               'model': deployment,
@@ -68,6 +71,7 @@ jobs:
               'runtime_s': d.get('runtime_s'),
               'findings': d.get('findings'),
               'steps_invoked': d.get('steps_invoked', []),
+              'token_usage_by_step': step_usage,
           }
           with open('comparison-summary.json', 'w') as f:
               json.dump(summary, f, indent=2)
@@ -82,9 +86,14 @@ jobs:
               '',
               '| Step | Input Tokens | Output Tokens | Cost USD |',
               '|------|--------------|---------------|----------|',
-              '| **total** | **{:,}** | **{:,}** | **{}** |'.format(
-                  tu['prompt_tokens'], tu['completion_tokens'], cost_str),
           ]
+          for s in step_usage:
+              sc = s['cost_usd']
+              sc_str = '${:.4f}'.format(sc) if sc is not None else 'N/A'
+              lines.append('| {} | {:,} | {:,} | {} |'.format(
+                  s['step'], s['prompt_tokens'], s['completion_tokens'], sc_str))
+          lines.append('| **total** | **{:,}** | **{:,}** | **{}** |'.format(
+              tu['prompt_tokens'], tu['completion_tokens'], cost_str))
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
               f.write('\n'.join(lines) + '\n')
           EOF
