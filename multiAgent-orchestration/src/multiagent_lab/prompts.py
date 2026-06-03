@@ -15,9 +15,8 @@ QUALITY_SYSTEM_PROMPT = (
 
 Consider:
 1. Code readability and clarity
-2. Test coverage indicators
-3. Performance implications
-4. Overall code quality score
+2. Performance implications
+3. Overall code quality score
 
 Provide numeric scores where required.
 
