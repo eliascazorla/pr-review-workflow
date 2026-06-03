@@ -218,7 +218,9 @@ async function main(): Promise<void> {
   workflow.registerStep('review_generator', new ReviewGeneratorStep(llmClient));
   workflow.registerStep('action_executor', new ActionExecutorStep(githubToken));
 
+  const startTime = Date.now();
   const result = await workflow.execute(prMetadata);
+  const runtimeS = Math.round((Date.now() - startTime) / 100) / 10;
 
   if (result.status === 'failed') {
     logger.error(`Workflow failed: ${result.error}`);
@@ -239,6 +241,7 @@ async function main(): Promise<void> {
     model: config.modelDeploymentName,
     token_usage: tokenUsage,
     findings: actionResult?.comments?.length ?? null,
+    runtime_s: runtimeS,
     steps_invoked: ['code_analyzer', 'quality_evaluator', 'review_generator', 'action_executor'],
   }, null, 2));
   logger.info(`Token usage written: ${JSON.stringify(tokenUsage)}`);
