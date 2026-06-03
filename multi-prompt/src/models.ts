@@ -31,6 +31,7 @@ export const CodeAnalysisResultSchema = z.object({
   patterns_found: z.array(z.string()).default([]),
   tech_debt: z.array(z.string()).default([]),
   summary: z.string(),
+  confidence: z.number().min(0).max(1),
 });
 export type CodeAnalysisResult = z.infer<typeof CodeAnalysisResultSchema>;
 
@@ -43,6 +44,7 @@ export const QualityMetricsResultSchema = z.object({
   performance_concerns: z.array(z.string()).default([]),
   overall_quality_score: z.number().min(0).max(10),
   summary: z.string(),
+  confidence: z.number().min(0).max(1),
 });
 export type QualityMetricsResult = z.infer<typeof QualityMetricsResultSchema>;
 
@@ -65,6 +67,7 @@ export const ReviewCommentsResultSchema = z.object({
   review_comments: z.array(ReviewCommentSchema).default([]),
   overall_verdict: ReviewVerdictSchema,
   summary: z.string(),
+  confidence: z.number().min(0).max(1),
 });
 export type ReviewCommentsResult = z.infer<typeof ReviewCommentsResultSchema>;
 

@@ -34,6 +34,7 @@ Guidelines:
 5. Provide categories: performance, readability, security, testing, design
 6. Determine overall verdict: approve, request_changes, or comment
 7. If the code looks good and you have no real issues to raise, return an empty review_comments array and set the verdict to approve — do not invent problems
+8. Include a confidence score (0.0–1.0) reflecting how certain you are in your review given the available context
 
 Only comment on genuine issues. It is perfectly valid to approve with no comments.`;
 
@@ -76,11 +77,14 @@ Generate detailed review comments referencing only files and lines from the diff
     const result = await this.llmClient.callWithSchema(
       ReviewCommentsResultSchema,
       systemPrompt,
-      userMessage
+      userMessage,
+      0,
+      4096,
+      'review_generator'
     );
 
     logger.info(
-      `Review generated with ${result.review_comments.length} comments, verdict: ${result.overall_verdict}`
+      `Review generated with ${result.review_comments.length} comments, verdict: ${result.overall_verdict}, confidence: ${result.confidence}`
     );
     return result;
   }

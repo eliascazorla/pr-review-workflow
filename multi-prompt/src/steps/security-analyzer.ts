@@ -24,7 +24,8 @@ export class CodeAnalyzerStep extends PipelineStep {
     const systemPrompt = `You are a security reviewer. 
 Focus only on secrets, injection risks, dangerous primitives, vulnerable dependency hints, and unsafe shell usage. 
 Do not comment on naming or code style unless it creates a security risk. 
-Return a concise summary and a short list of actionable findings.`;
+Return a concise summary and a short list of actionable findings.
+Include a confidence score (0.0–1.0) reflecting how certain you are in your analysis given the available context.`;
 
     const userMessage = `Analyze this GitHub PR:
 
@@ -40,10 +41,13 @@ Return a detailed JSON analysis with complexity score, security issues, patterns
     const result = await this.llmClient.callWithSchema(
       CodeAnalysisResultSchema,
       systemPrompt,
-      userMessage
+      userMessage,
+      0,
+      4096,
+      'security_analyzer'
     );
 
-    logger.info(`Code analysis completed with complexity score: ${result.complexity_score}`);
+    logger.info(`Code analysis completed with complexity score: ${result.complexity_score}, confidence: ${result.confidence}`);
     return result;
   }
 }
