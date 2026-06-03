@@ -98,6 +98,8 @@ Previous Code Analysis:
 Repository: {repo_owner}/{repo_name}
 PR Title: {title}
 {analysis_summary}
+Code Diff:
+{self._render_llm_context(diff)}
 
 Provide quality metrics including readability score (0-10), test coverage estimate (0-100), performance concerns, and overall quality score (0-10)."""
         
