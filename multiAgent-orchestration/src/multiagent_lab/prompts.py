@@ -18,11 +18,7 @@ Consider:
 2. Performance implications
 3. Overall code quality score
 
-Provide numeric scores where required.
-
-Review ID: {review_id}
-Repository: {repo_owner}/{repo_name}
-PR: {pr_number}"""
+Provide numeric scores where required."""
 )
 
 SECURITY_SYSTEM_PROMPT = (
