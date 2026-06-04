@@ -53,7 +53,7 @@ jobs:
               'gpt-5.4':                   {'input_cost_per_token': 2.50  / 1_000_000, 'output_cost_per_token': 15.00 / 1_000_000},
               'Kimi-K2.6':                 {'input_cost_per_token': 0.8   / 1_000_000, 'output_cost_per_token':  2.00 / 1_000_000},
               'DeepSeek-V4-Pro':           {'input_cost_per_token': 0.435 / 1_000_000, 'output_cost_per_token':  0.87 / 1_000_000},
-              'anthropic.claude-sonnet-4-6': {'input_cost_per_token': 3.00 / 1_000_000, 'output_cost_per_token': 15.00 / 1_000_000},
+              'us.anthropic.claude-sonnet-4-6': {'input_cost_per_token': 3.00 / 1_000_000, 'output_cost_per_token': 15.00 / 1_000_000},
           }
           d = json.load(open('token-usage.json', encoding='utf-8'))
           deployment = d.get('model', 'unknown')
