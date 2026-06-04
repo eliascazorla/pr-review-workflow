@@ -6,14 +6,14 @@ import logger from './logger';
 import { LLMClient } from './llm-client';
 import { PRReviewWorkflow } from './workflow';
 import {
-  CodeAnalyzerStep,
+  SecurityAnalyzerStep,
   QualityEvaluatorStep,
   ReviewGeneratorStep,
   ActionExecutorStep,
 } from './steps';
 import { PRMetadata } from './models';
 import type {
-  CodeAnalysisResult,
+  SecurityAnalysisResult,
   QualityMetricsResult,
   ReviewCommentsResult,
   ReviewAction,
@@ -105,7 +105,7 @@ async function fetchPRMetadata(
 function printResults(
   reviewId: string,
   prMetadata: PRMetadata,
-  codeAnalysis: CodeAnalysisResult | undefined,
+  codeAnalysis: SecurityAnalysisResult | undefined,
   qualityMetrics: QualityMetricsResult | undefined,
   reviewComments: ReviewCommentsResult | undefined
 ): void {
@@ -148,8 +148,8 @@ function printResults(
     console.log(`\n--- Review Comments (${comments.length}) ---`);
     for (const comment of comments) {
       const location = comment.line_number
-        ? `${comment.file_path}:${comment.line_number}`
-        : comment.file_path;
+        ? `${comment.file_path ?? 'unknown'}:${comment.line_number}`
+        : (comment.file_path ?? 'general');
       console.log(`\n[${comment.severity.toUpperCase()}] ${location}`);
       console.log(`Category : ${comment.category}`);
       console.log(`Comment  : ${comment.comment}`);
@@ -213,7 +213,7 @@ async function main(): Promise<void> {
   const llmClient = new LLMClient();
 
   const workflow = new PRReviewWorkflow();
-  workflow.registerStep('code_analyzer', new CodeAnalyzerStep(llmClient));
+  workflow.registerStep('security_analyzer', new SecurityAnalyzerStep(llmClient));
   workflow.registerStep('quality_evaluator', new QualityEvaluatorStep(llmClient));
   workflow.registerStep('review_generator', new ReviewGeneratorStep(llmClient));
   workflow.registerStep('action_executor', new ActionExecutorStep(githubToken));
@@ -230,7 +230,7 @@ async function main(): Promise<void> {
   printResults(
     result.review_id,
     prMetadata,
-    workflow.getAnalysisResult() as CodeAnalysisResult | undefined,
+    workflow.getAnalysisResult() as SecurityAnalysisResult | undefined,
     workflow.getQualityResult() as QualityMetricsResult | undefined,
     workflow.getReviewComments() as ReviewCommentsResult | undefined
   );

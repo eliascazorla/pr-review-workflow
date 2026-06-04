@@ -52,7 +52,7 @@ export class ActionExecutorStep extends PipelineStep {
   private async postReviewToGitHub(action: ReviewAction): Promise<void> {
     const octokit = new Octokit({ auth: this.githubToken });
 
-    const lineComments = action.comments.filter(c => c.line_number != null);
+    const lineComments = action.comments.filter(c => c.line_number != null && c.file_path != null);
     const generalComments = action.comments.filter(c => c.line_number == null);
 
     // Post inline review comments with no approve/request_changes verdict.
@@ -65,7 +65,7 @@ export class ActionExecutorStep extends PipelineStep {
         body: action.summary,
         event: 'COMMENT',
         comments: lineComments.map(c => ({
-          path: c.file_path,
+          path: c.file_path!,
           line: c.line_number!,
           body: `**[${c.severity.toUpperCase()}] ${c.category}**\n\n${c.comment}`,
         })),
@@ -74,7 +74,7 @@ export class ActionExecutorStep extends PipelineStep {
     } catch (err) {
       logger.warn(`Inline review failed (path/line not in diff), falling back to general comment: ${err}`);
       const fallbackBody = lineComments
-        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path}:${c.line_number}\`\n\n${c.comment}`)
+        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path ?? 'unknown'}:${c.line_number}\`\n\n${c.comment}`)
         .join('\n\n---\n\n');
       await octokit.issues.createComment({
         owner: action.repo_owner,
@@ -88,7 +88,7 @@ export class ActionExecutorStep extends PipelineStep {
     // Post general (non-line-specific) issues as a single PR comment
     if (generalComments.length > 0) {
       const body = generalComments
-        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path}\`\n\n${c.comment}`)
+        .map(c => `**[${c.severity.toUpperCase()}] ${c.category}** — \`${c.file_path ?? 'general'}\`\n\n${c.comment}`)
         .join('\n\n---\n\n');
 
       await octokit.issues.createComment({

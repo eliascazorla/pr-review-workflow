@@ -3,8 +3,9 @@ import { LLMClient } from '../llm-client';
 import {
   ReviewCommentsResultSchema,
   ReviewCommentsResult,
-  CodeAnalysisResult,
+  SecurityAnalysisResult,
   QualityMetricsResult,
+  SecurityIssue,
   PRMetadata,
 } from '../models';
 import logger from '../logger';
@@ -19,47 +20,58 @@ export class ReviewGeneratorStep extends PipelineStep {
 
   async execute(context: WorkflowContext): Promise<ReviewCommentsResult> {
     const prMetadata = context.pr_metadata as PRMetadata;
-    const codeAnalysis = context.code_analyzer as CodeAnalysisResult | undefined;
+    const securityAnalysis = context.code_analyzer as SecurityAnalysisResult | undefined;
     const qualityMetrics = context.quality_evaluator as QualityMetricsResult | undefined;
 
     logger.info(`Generating review comments for PR #${prMetadata.pr_number}`);
 
-    const systemPrompt = `You are an experienced code reviewer. Based on the code analysis, quality metrics, and the actual code diff, generate constructive review comments in JSON format.
+    const systemPrompt = `You are an experienced code reviewer. Based on the structured findings from the security analysis and quality evaluation steps below, generate constructive review COMMENTS in JSON format.
 
 Guidelines:
-1. Be specific and actionable in your comments
-2. ONLY reference file paths that appear in the diff below — never invent file names
-3. ONLY reference line numbers that exist in those files within the diff — leave line_number null if unsure
-4. Use severity levels: low (suggestion), medium (minor issue), high (major issue)
-5. Provide categories: performance, readability, security, testing, design
-6. Determine overall verdict: approve, request_changes, or comment
-7. If the code looks good and you have no real issues to raise, return an empty review_comments array and set the verdict to approve — do not invent problems
-8. Include a confidence score (0.0–1.0) reflecting how certain you are in your review given the available context
+1. Be specific and actionable in your comments — base them strictly on the provided findings
+2. Do NOT invent file paths or line numbers; leave file_path and line_number null unless the finding explicitly names them
+3. Use severity levels: low (suggestion), medium (minor issue), high (major issue)
+4. Provide categories: performance, readability, security, testing, design
+5. Determine overall verdict: approve, request_changes, or comment
+6. If the findings show no real issues, return an empty review_comments array and set the verdict to approve — do not invent problems
+7. Include a confidence score (0.0–1.0) reflecting how certain you are in your review given the available context
 
-Only comment on genuine issues. It is perfectly valid to approve with no comments.`;
+Only comment on genuine issues surfaced by the previous analysis steps. It is perfectly valid to approve with no comments.`;
 
     let analysisSummary = '';
-    if (codeAnalysis) {
+    if (securityAnalysis) {
+      const securityLines = securityAnalysis.security_issues.length
+        ? securityAnalysis.security_issues
+            .map((i: SecurityIssue) => `  [${i.severity}] ${i.description}${i.cweId ? ` (${i.cweId})` : ''}`)
+            .join('\n')
+        : '  None';
+      const techDebtLines = securityAnalysis.tech_debt.length
+        ? securityAnalysis.tech_debt.map((t: string) => `  - ${t}`).join('\n')
+        : '  None';
       analysisSummary += `
-Code Analysis:
-- Complexity: ${codeAnalysis.complexity_score}/10
-- Security Issues: ${codeAnalysis.security_issues.length}
-- Tech Debt: ${codeAnalysis.tech_debt.length}
+Security Analysis (complexity: ${securityAnalysis.complexity_score}/10):
+Summary: ${securityAnalysis.summary}
+Patterns found: ${securityAnalysis.patterns_found.join(', ') || 'None'}
+Security issues:
+${securityLines}
+Tech debt:
+${techDebtLines}
 `;
     }
 
     if (qualityMetrics) {
+      const perfLines = qualityMetrics.performance_concerns.length
+        ? qualityMetrics.performance_concerns.map((p: string) => `  - ${p}`).join('\n')
+        : '  None';
       analysisSummary += `
-Quality Metrics:
-- Readability: ${qualityMetrics.readability_score}/10
-- Test Coverage: ${qualityMetrics.test_coverage_score}%
-- Overall Quality: ${qualityMetrics.overall_quality_score}/10
+Quality Metrics (overall: ${qualityMetrics.overall_quality_score}/10):
+Summary: ${qualityMetrics.summary}
+Readability: ${qualityMetrics.readability_score}/10
+Test coverage estimate: ${qualityMetrics.test_coverage_score}%
+Performance concerns:
+${perfLines}
 `;
     }
-
-    const diffSummary = prMetadata.diff.substring(0, 60000);
-    const limitedDiff =
-      prMetadata.diff.length > 60000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
 
     const userMessage = `Generate a comprehensive review for this PR:
 
@@ -69,10 +81,7 @@ PR Description: ${prMetadata.description}
 Author: ${prMetadata.author}
 
 ${analysisSummary}
-Code Diff (use ONLY these files and line numbers in your comments):
-${limitedDiff}
-
-Generate detailed review comments referencing only files and lines from the diff above. Leave line_number null for general comments. Include an overall verdict.`;
+Convert the findings above into structured review comments. Leave file_path and line_number null for general comments. Include an overall verdict.`;
 
     const result = await this.llmClient.callWithSchema(
       ReviewCommentsResultSchema,

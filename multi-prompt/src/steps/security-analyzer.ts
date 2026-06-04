@@ -1,17 +1,17 @@
 import { PipelineStep, WorkflowContext } from '../workflow';
 import { LLMClient } from '../llm-client';
-import { CodeAnalysisResultSchema, CodeAnalysisResult, PRMetadata } from '../models';
+import { SecurityAnalysisResultSchema, SecurityAnalysisResult, PRMetadata } from '../models';
 import logger from '../logger';
 
 /**
  * Security Analysis step - analyzes code changes in PR
  */
-export class CodeAnalyzerStep extends PipelineStep {
+export class SecurityAnalyzerStep extends PipelineStep {
   constructor(private llmClient: LLMClient) {
     super();
   }
 
-  async execute(context: WorkflowContext): Promise<CodeAnalysisResult> {
+  async execute(context: WorkflowContext): Promise<SecurityAnalysisResult> {
     const prMetadata = context.pr_metadata as PRMetadata;
 
     logger.info(`Analyzing code for PR #${prMetadata.pr_number}`);
@@ -39,7 +39,7 @@ ${limitedDiff}
 Return a detailed JSON analysis with complexity score, security issues, patterns, and technical debt.`;
 
     const result = await this.llmClient.callWithSchema(
-      CodeAnalysisResultSchema,
+      SecurityAnalysisResultSchema,
       systemPrompt,
       userMessage,
       0,
