@@ -102,7 +102,7 @@ Convert the findings above into structured review comments. Leave file_path and 
       systemPrompt,
       userMessage,
       0,
-      4096,
+      10000,
       'review_generator'
     );
 
