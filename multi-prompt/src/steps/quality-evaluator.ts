@@ -44,11 +44,17 @@ Previous Code Analysis:
 `;
     }
 
+    const diffSummary = prMetadata.diff.substring(0, 40000);
+    const limitedDiff =
+      prMetadata.diff.length > 40000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
+
     const userMessage = `Evaluate the code quality for this PR:
 
 Repository: ${prMetadata.repo_owner}/${prMetadata.repo_name}
 PR Title: ${prMetadata.title}
 ${analysisSummary}
+Code Diff:
+${limitedDiff}
 
 Provide quality metrics including readability score (0-10), test coverage estimate (0-100), performance concerns, and overall quality score (0-10).`;
 
