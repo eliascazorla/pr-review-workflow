@@ -67,7 +67,7 @@ Provide quality metrics including readability score (0-10), test coverage estima
       systemPrompt,
       userMessage,
       0,
-      4096,
+      10000,
       'quality_evaluator'
     );
 

@@ -44,7 +44,7 @@ Return a detailed JSON analysis with complexity score, security issues, patterns
       systemPrompt,
       userMessage,
       0,
-      4096,
+      10000,
       'security_analyzer'
     );
 
