@@ -5,6 +5,7 @@ import {
   ReviewCommentsResult,
   SecurityAnalysisResult,
   QualityMetricsResult,
+  QualityFinding,
   SecurityIssue,
   PRMetadata,
 } from '../models';
@@ -29,7 +30,7 @@ export class ReviewGeneratorStep extends PipelineStep {
 
 Guidelines:
 1. Be specific and actionable in your comments — base them strictly on the provided findings
-2. Do NOT invent file paths or line numbers; leave file_path and line_number null unless the finding explicitly names them
+2. When a finding includes a file_path or line_number, use them directly for the comment location. Only leave file_path and line_number null when the finding has no location info
 3. Use severity levels: low (suggestion), medium (minor issue), high (major issue)
 4. Provide categories: performance, readability, security, testing, design
 5. Determine overall verdict: approve, request_changes, or comment
@@ -42,7 +43,10 @@ Only comment on genuine issues surfaced by the previous analysis steps. It is pe
     if (securityAnalysis) {
       const securityLines = securityAnalysis.security_issues.length
         ? securityAnalysis.security_issues
-            .map((i: SecurityIssue) => `  [${i.severity}] ${i.description}${i.cweId ? ` (${i.cweId})` : ''}`)
+            .map((i: SecurityIssue) => {
+              const loc = i.file_path ? ` @ ${i.file_path}${i.line_number != null ? `:${i.line_number}` : ''}` : '';
+              return `  [${i.severity}]${loc} ${i.description}${i.cweId ? ` (${i.cweId})` : ''}`;
+            })
             .join('\n')
         : '  None';
       const techDebtLines = securityAnalysis.tech_debt.length
@@ -63,6 +67,14 @@ ${techDebtLines}
       const perfLines = qualityMetrics.performance_concerns.length
         ? qualityMetrics.performance_concerns.map((p: string) => `  - ${p}`).join('\n')
         : '  None';
+      const findingLines = qualityMetrics.code_findings.length
+        ? qualityMetrics.code_findings
+            .map((f: QualityFinding) => {
+              const loc = f.file_path ? ` @ ${f.file_path}${f.line_number != null ? `:${f.line_number}` : ''}` : '';
+              return `  [${f.severity}][${f.category}]${loc} ${f.description}`;
+            })
+            .join('\n')
+        : '  None';
       analysisSummary += `
 Quality Metrics (overall: ${qualityMetrics.overall_quality_score}/10):
 Summary: ${qualityMetrics.summary}
@@ -70,6 +82,8 @@ Readability: ${qualityMetrics.readability_score}/10
 Test coverage estimate: ${qualityMetrics.test_coverage_score}%
 Performance concerns:
 ${perfLines}
+Code findings:
+${findingLines}
 `;
     }
 
