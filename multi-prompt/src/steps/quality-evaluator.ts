@@ -3,7 +3,7 @@ import { LLMClient } from '../llm-client';
 import {
   QualityMetricsResultSchema,
   QualityMetricsResult,
-  CodeAnalysisResult,
+  SecurityAnalysisResult,
   PRMetadata,
 } from '../models';
 import logger from '../logger';
@@ -18,7 +18,7 @@ export class QualityEvaluatorStep extends PipelineStep {
 
   async execute(context: WorkflowContext): Promise<QualityMetricsResult> {
     const prMetadata = context.pr_metadata as PRMetadata;
-    const codeAnalysis = context.code_analyzer as CodeAnalysisResult | undefined;
+    const codeAnalysis = context.code_analyzer as SecurityAnalysisResult | undefined;
 
     logger.info(`Evaluating quality metrics for PR #${prMetadata.pr_number}`);
 

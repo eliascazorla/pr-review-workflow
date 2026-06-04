@@ -37,7 +37,7 @@ jobs:
         if: always()
         working-directory: multi-prompt
         env:
-          MODEL_CANONICAL_NAME: ${{ secrets.MODEL_CANONICAL_NAME }}
+          MODEL_LITELLM_KEY: ${{ vars.MODEL_LITELLM_KEY }}
         run: |
           python3 << 'EOF'
           import json, os, urllib.request
@@ -48,8 +48,10 @@ jobs:
               pricing = {}
           d = json.load(open('token-usage.json', encoding='utf-8'))
           deployment = d.get('model', 'unknown')
-          pricing_key = os.environ.get('MODEL_CANONICAL_NAME') or deployment
+          pricing_key = os.environ.get('MODEL_LITELLM_KEY') or deployment
           mp = pricing.get(pricing_key, {})
+          if not mp:
+              print(f'WARNING: pricing key "{pricing_key}" not found in LiteLLM pricing data — cost will be N/A')
           ip = mp.get('input_cost_per_token', 0) * 1_000_000
           op = mp.get('output_cost_per_token', 0) * 1_000_000
           tu = d['token_usage']
