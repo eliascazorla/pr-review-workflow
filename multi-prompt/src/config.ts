@@ -58,7 +58,7 @@ export function loadConfig(): Config {
   const env = process.env;
 
   const modelDeploymentName = env.MODEL_DEPLOYMENT_NAME || '';
-  const provider = modelDeploymentName.toLowerCase().startsWith('claude') ? 'bedrock' : 'azure';
+  const provider = modelDeploymentName.toLowerCase().includes('claude') ? 'bedrock' : 'azure';
 
   const raw = {
     provider,

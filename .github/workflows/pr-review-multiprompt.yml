@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: multi-prompt/package-lock.json
 
       - name: Configure AWS credentials (Bedrock)
-        if: ${{ startsWith(vars.MODEL_DEPLOYMENT_NAME, 'claude') }}
+        if: ${{ contains(vars.MODEL_DEPLOYMENT_NAME, 'claude') }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
