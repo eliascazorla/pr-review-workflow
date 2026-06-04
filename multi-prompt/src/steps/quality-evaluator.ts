@@ -22,13 +22,17 @@ export class QualityEvaluatorStep extends PipelineStep {
 
     logger.info(`Evaluating quality metrics for PR #${prMetadata.pr_number}`);
 
-    const systemPrompt = `You are a software quality expert. Evaluate code quality based on the provided analysis and return metrics in JSON format.
+    const systemPrompt = `You are a software quality expert. Evaluate code quality based on the provided code diff and return metrics in JSON format.
 
 Consider:
 1. Code readability and clarity
 2. Test coverage indicators
 3. Performance implications
 4. Overall code quality score
+
+For each specific issue you find in the diff, add an entry to code_findings with:
+- severity (low/medium/high), category (readability/testing/performance/design), description
+- file_path and line_number extracted from the diff headers ("diff --git a/X b/X" and "@@ -L +L @@"); set to null only for cross-cutting concerns with no single location
 
 Provide numeric scores where required.
 Include a confidence score (0.0–1.0) reflecting how certain you are in your evaluation given the available context.`;

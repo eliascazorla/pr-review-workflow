@@ -19,6 +19,8 @@ export const SecurityIssueSchema = z.object({
   severity: SeveritySchema,
   description: z.string(),
   cweId: z.string().optional(),
+  file_path: z.string().nullable().optional(),
+  line_number: z.number().nullable().optional(),
 });
 export type SecurityIssue = z.infer<typeof SecurityIssueSchema>;
 
@@ -38,10 +40,20 @@ export type SecurityAnalysisResult = z.infer<typeof SecurityAnalysisResultSchema
 /**
  * Result of quality evaluation step
  */
+export const QualityFindingSchema = z.object({
+  severity: SeveritySchema,
+  category: z.string(),
+  description: z.string(),
+  file_path: z.string().nullable().optional(),
+  line_number: z.number().nullable().optional(),
+});
+export type QualityFinding = z.infer<typeof QualityFindingSchema>;
+
 export const QualityMetricsResultSchema = z.object({
   readability_score: z.number().min(0).max(10),
   test_coverage_score: z.number().min(0).max(100),
   performance_concerns: z.array(z.string()).default([]),
+  code_findings: z.array(QualityFindingSchema).default([]),
   overall_quality_score: z.number().min(0).max(10),
   summary: z.string(),
   confidence: z.number().min(0).max(1),
