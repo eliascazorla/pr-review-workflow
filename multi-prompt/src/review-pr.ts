@@ -148,8 +148,8 @@ function printResults(
     console.log(`\n--- Review Comments (${comments.length}) ---`);
     for (const comment of comments) {
       const location = comment.line_number
-        ? `${comment.file_path}:${comment.line_number}`
-        : comment.file_path;
+        ? `${comment.file_path ?? 'unknown'}:${comment.line_number}`
+        : (comment.file_path ?? 'general');
       console.log(`\n[${comment.severity.toUpperCase()}] ${location}`);
       console.log(`Category : ${comment.category}`);
       console.log(`Comment  : ${comment.comment}`);

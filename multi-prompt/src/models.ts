@@ -52,7 +52,7 @@ export type QualityMetricsResult = z.infer<typeof QualityMetricsResultSchema>;
  * Individual review comment
  */
 export const ReviewCommentSchema = z.object({
-  file_path: z.string(),
+  file_path: z.string().nullable(),
   line_number: z.number().nullish().transform(v => v ?? undefined),
   severity: SeveritySchema,
   comment: z.string(),
