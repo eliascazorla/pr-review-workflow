@@ -35,6 +35,7 @@ export class LLMClient {
     });
     this.modelDeploymentName = config.modelDeploymentName;
     this.maxRetries = config.maxRetries;
+    logger.info(`LLM client initialized with model: ${this.modelDeploymentName}`);
   }
 
   /**
@@ -55,6 +56,7 @@ ${JSON.stringify(zodToJsonSchema(schema as any), null, 2)}
 
 Ensure the JSON is valid and complete.`;
 
+    logger.info(`Calling model '${this.modelDeploymentName}' for step '${stepName}'`);
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         logger.info(`LLM call attempt ${attempt}/${this.maxRetries}`);
