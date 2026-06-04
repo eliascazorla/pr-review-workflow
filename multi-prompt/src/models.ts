@@ -19,13 +19,15 @@ export const SecurityIssueSchema = z.object({
   severity: SeveritySchema,
   description: z.string(),
   cweId: z.string().optional(),
+  file_path: z.string().nullable().optional(),
+  line_number: z.number().nullable().optional(),
 });
 export type SecurityIssue = z.infer<typeof SecurityIssueSchema>;
 
 /**
  * Result of code analysis step
  */
-export const CodeAnalysisResultSchema = z.object({
+export const SecurityAnalysisResultSchema = z.object({
   complexity_score: z.number().min(0).max(10),
   security_issues: z.array(SecurityIssueSchema).default([]),
   patterns_found: z.array(z.string()).default([]),
@@ -33,15 +35,25 @@ export const CodeAnalysisResultSchema = z.object({
   summary: z.string(),
   confidence: z.number().min(0).max(1),
 });
-export type CodeAnalysisResult = z.infer<typeof CodeAnalysisResultSchema>;
+export type SecurityAnalysisResult = z.infer<typeof SecurityAnalysisResultSchema>;
 
 /**
  * Result of quality evaluation step
  */
+export const QualityFindingSchema = z.object({
+  severity: SeveritySchema,
+  category: z.string(),
+  description: z.string(),
+  file_path: z.string().nullable().optional(),
+  line_number: z.number().nullable().optional(),
+});
+export type QualityFinding = z.infer<typeof QualityFindingSchema>;
+
 export const QualityMetricsResultSchema = z.object({
   readability_score: z.number().min(0).max(10),
   test_coverage_score: z.number().min(0).max(100),
   performance_concerns: z.array(z.string()).default([]),
+  code_findings: z.array(QualityFindingSchema).default([]),
   overall_quality_score: z.number().min(0).max(10),
   summary: z.string(),
   confidence: z.number().min(0).max(1),
@@ -52,7 +64,7 @@ export type QualityMetricsResult = z.infer<typeof QualityMetricsResultSchema>;
  * Individual review comment
  */
 export const ReviewCommentSchema = z.object({
-  file_path: z.string(),
+  file_path: z.string().nullable(),
   line_number: z.number().nullish().transform(v => v ?? undefined),
   severity: SeveritySchema,
   comment: z.string(),
