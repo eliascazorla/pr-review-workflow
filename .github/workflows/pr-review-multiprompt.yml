@@ -30,7 +30,7 @@ jobs:
         env:
           AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
-          MODEL_DEPLOYMENT_NAME: ${{ secrets.MODEL_DEPLOYMENT_NAME }}
+          MODEL_DEPLOYMENT_NAME: ${{ vars.MODEL_DEPLOYMENT_NAME }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish cost summary and comparison artifact
