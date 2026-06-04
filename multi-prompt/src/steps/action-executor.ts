@@ -65,7 +65,7 @@ export class ActionExecutorStep extends PipelineStep {
         body: action.summary,
         event: 'COMMENT',
         comments: lineComments.map(c => ({
-          path: c.file_path,
+          path: c.file_path!,
           line: c.line_number!,
           body: `**[${c.severity.toUpperCase()}] ${c.category}**\n\n${c.comment}`,
         })),
