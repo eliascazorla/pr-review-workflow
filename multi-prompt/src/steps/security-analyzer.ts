@@ -21,6 +21,8 @@ export class SecurityAnalyzerStep extends PipelineStep {
     const limitedDiff =
       prMetadata.diff.length > 60000 ? diffSummary + '\n... (diff truncated)' : diffSummary;
 
+    console.log("Diff summary:", limitedDiff);
+
     const systemPrompt = `You are a security reviewer. 
 Focus only on secrets, injection risks, dangerous primitives, vulnerable dependency hints, and unsafe shell usage. 
 Do not comment on naming or code style unless it creates a security risk. 
@@ -47,6 +49,8 @@ Return a detailed JSON analysis with complexity score, security issues, patterns
       10000,
       'security_analyzer'
     );
+
+    logger.info(`Security result object: ${JSON.stringify(result, null, 2)}`);
 
     logger.info(`Code analysis completed with complexity score: ${result.complexity_score}, confidence: ${result.confidence}`);
     return result;

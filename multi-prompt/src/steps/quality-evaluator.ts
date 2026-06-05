@@ -71,6 +71,8 @@ Provide quality metrics including readability score (0-10), test coverage estima
       'quality_evaluator'
     );
 
+    logger.info(`Quality result object: ${JSON.stringify(result, null, 2)}`);
+
     logger.info(`Quality evaluation completed with score: ${result.overall_quality_score}/10, confidence: ${result.confidence}`);
     return result;
   }
