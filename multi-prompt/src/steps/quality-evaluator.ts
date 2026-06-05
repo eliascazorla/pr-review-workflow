@@ -30,6 +30,7 @@ Consider:
 3. Performance implications
 4. Overall code quality score
 
+Do not comment on security design or issues.
 For each specific issue you find in the diff, add an entry to code_findings with:
 - severity (low/medium/high), category (readability/testing/performance/design), description
 - file_path and line_number extracted from the diff headers ("diff --git a/X b/X" and "@@ -L +L @@"); set to null only for cross-cutting concerns with no single location
