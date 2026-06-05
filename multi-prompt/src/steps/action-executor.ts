@@ -55,6 +55,13 @@ export class ActionExecutorStep extends PipelineStep {
     const lineComments = action.comments.filter(c => c.line_number != null && c.file_path != null);
     const generalComments = action.comments.filter(c => c.line_number == null);
 
+    if (lineComments.length > 0) {
+      logger.info(`Attempting to post ${lineComments.length} inline comments:`);
+      lineComments.forEach((c, i) => {
+        logger.info(`  ${i + 1}. ${c.file_path}:${c.line_number} - ${c.category}`);
+      });
+    }
+
     // Post inline review comments with no approve/request_changes verdict.
     // Falls back to a general issue comment if GitHub rejects the paths/lines.
     try {
