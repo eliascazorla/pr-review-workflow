@@ -22,10 +22,7 @@ export class ReviewGeneratorStep extends PipelineStep {
   async execute(context: WorkflowContext): Promise<ReviewCommentsResult> {
     const prMetadata = context.pr_metadata as PRMetadata;
     const securityAnalysis = context.code_analyzer as SecurityAnalysisResult | undefined;
-    console.log("Security analysis on review generator:", JSON.stringify(securityAnalysis, null, 2));
     const qualityMetrics = context.quality_evaluator as QualityMetricsResult | undefined;
-    console.log("Quality metrics on review generator:", JSON.stringify(qualityMetrics, null, 2));
-
 
     logger.info(`Generating review comments for PR #${prMetadata.pr_number}`);
 
