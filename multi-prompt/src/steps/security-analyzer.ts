@@ -48,6 +48,8 @@ Return a detailed JSON analysis with complexity score, security issues, patterns
       'security_analyzer'
     );
 
+    logger.info('Security analysis result:', JSON.stringify(result, null, 2));
+
     logger.info(`Code analysis completed with complexity score: ${result.complexity_score}, confidence: ${result.confidence}`);
     return result;
   }
