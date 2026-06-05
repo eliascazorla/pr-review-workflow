@@ -103,6 +103,21 @@ public sealed class TodoRepository(TimeProvider timeProvider, TodoContext contex
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IList<TodoItem>> SearchItemsByTextVulnerableAsync(
+        string userId,
+        string searchText,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureDatabaseAsync(cancellationToken);
+
+        
+        var query = $"SELECT * FROM TodoItems WHERE UserId = '{userId}' AND Text LIKE '%{searchText}%'";
+        
+        return await context.TodoItems
+            .FromSqlRaw(query)
+            .ToListAsync(cancellationToken);
+    }
+
     private async Task EnsureDatabaseAsync(CancellationToken cancellationToken)
         => await context.Database.EnsureCreatedAsync(cancellationToken);
 

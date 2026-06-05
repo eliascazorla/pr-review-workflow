@@ -14,4 +14,6 @@ public interface ITodoRepository
     Task<TodoItem?> GetItemAsync(string userId, Guid itemId, CancellationToken cancellationToken = default);
 
     Task<IList<TodoItem>> GetItemsAsync(string userId, CancellationToken cancellationToken = default);
+
+    Task<IList<TodoItem>> SearchItemsByTextVulnerableAsync(string userId, string searchText, CancellationToken cancellationToken = default);
 }

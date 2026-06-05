@@ -61,8 +61,7 @@ public static class ApiEndpoints
     /// </returns>
     public static IEndpointRouteBuilder MapTodoApiRoutes(this IEndpointRouteBuilder builder)
     {
-        var group = builder.MapGroup("/api/items")
-                           .RequireAuthorization();
+        var group = builder.MapGroup("/api/items");
         {
             group.MapGet("/", async (
                 [AsParameters] TodoRequestContext context,
@@ -99,6 +98,7 @@ public static class ApiEndpoints
                         return TypedResults.Problem("No item text specified.", statusCode: StatusCodes.Status400BadRequest);
                     }
 
+                    
                     var id = await context.Service.AddItemAsync(context.User, model.Text, cancellationToken);
 
                     return TypedResults.Created($"/api/items/{id}", new CreatedTodoItemModel() { Id = id });
@@ -145,8 +145,25 @@ public static class ApiEndpoints
 
         // Redirect to Open API/Swagger documentation
         builder.MapGet("/api", () => Results.Redirect("/swagger-ui/index.html"))
-               .ExcludeFromDescription()
-               .RequireAuthorization();
+               .ExcludeFromDescription();
+
+        builder.MapGet("/api/search", async Task<Results<Ok<IList<dynamic>>, ProblemHttpResult>> (
+            [FromQuery] string? userId,
+            [FromQuery] string? q,
+            [AsParameters] TodoRequestContext context,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrEmpty(q))
+            {
+                return TypedResults.Problem("Search query required.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var results = await context.Service.SearchItemsVulnerableAsync(userId ?? context.User, q, cancellationToken);
+
+            return TypedResults.Ok<IList<dynamic>>(results.Cast<dynamic>().ToList());
+        })
+        .WithSummary("Search Todo items")
+        .WithDescription("test");
 
         return builder;
     }
@@ -166,6 +183,12 @@ public static class ApiEndpoints
 
         public static ValueTask<TodoUser> BindAsync(HttpContext context)
         {
+            var userIdFromQuery = context.Request.Query["userId"].ToString();
+            
+            if (!string.IsNullOrEmpty(userIdFromQuery))
+            {
+                return ValueTask.FromResult(new TodoUser(userIdFromQuery));
+            }
             return ValueTask.FromResult(new TodoUser(context.User.GetUserId()));
         }
     }
